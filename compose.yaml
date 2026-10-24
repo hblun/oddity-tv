@@ -1,0 +1,40 @@
+services:
+  station:
+    build: .
+    user: "${OPERATOR_UID:-1000}:${OPERATOR_GID:-1000}"
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8000}:8000"
+    volumes:
+      - ./config:/app/config:ro
+      - ./media:/app/media:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: local
+      options:
+        max-size: "5m"
+        max-file: "2"
+  tools:
+    profiles: [tools]
+    build:
+      context: .
+      args:
+        INSTALL_MEDIA_TOOLS: "true"
+    user: "${OPERATOR_UID:-1000}:${OPERATOR_GID:-1000}"
+    volumes:
+      - ./config:/app/config
+      - ./media:/app/media
+      - ${IMPORT_DIRECTORY:-./imports}:/imports:ro
+    environment:
+      JELLYFIN_URL: ${JELLYFIN_URL:-}
+      JELLYFIN_API_KEY: ${JELLYFIN_API_KEY:-}
+    entrypoint: [python, -m, station.cli]

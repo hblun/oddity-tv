@@ -1,0 +1,6 @@
+# Run Caddy on the public cache host. Replace with your own DNS name.
+tv.example.net {
+    reverse_proxy 127.0.0.1:8000
+    header -Server
+    # Access logging is deliberately not enabled.
+}

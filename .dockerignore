@@ -1,0 +1,9 @@
+.env
+.git
+.venv
+media
+imports
+config
+tests
+test-results
+__pycache__

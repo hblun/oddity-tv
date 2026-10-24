@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+*.zip
+config/catalog.json
+config/schedule.json
+media/*
+!media/.gitkeep
+imports/
+__pycache__/
+*.pyc
+.venv/
+test-results/

@@ -1,0 +1,33 @@
+{
+  "channel": "Oddity Television",
+  "timezone": "Europe/London",
+  "mode": "weekly",
+  "filler": ["oddity", "ident", "advert"],
+  "blocks": [
+    {
+      "title": "The evening service",
+      "days": [0, 1, 2, 3, 4, 5, 6],
+      "at": "19:00:00",
+      "items": [
+        {"asset": "ident"},
+        {"asset": "documentary"},
+        {"asset": "advert"},
+        {"asset": "pif"},
+        {"asset": "trailer"}
+      ]
+    },
+    {
+      "title": "Saturday Night Cinema",
+      "days": [5],
+      "at": "19:30:00",
+      "items": [
+        {"asset": "ident"},
+        {"asset": "feature", "in": 0, "duration": 20},
+        {"asset": "advert"},
+        {"asset": "pif"},
+        {"asset": "feature", "in": 20, "duration": 20},
+        {"asset": "ident"}
+      ]
+    }
+  ]
+}
