@@ -43,9 +43,45 @@ class Jellyfin:
             if not batch or offset >= data.get("TotalRecordCount", offset):
                 break
 
-    def download(self, item_id, destination):
-        with self.client.stream("GET", f"Videos/{quote(item_id, safe='')}/stream", params={"Static": "true"}) as response:
+    def media_source(self, item_id):
+        response = self.client.get(f"Items/{quote(item_id, safe='')}", params={"Fields": "MediaSources,MediaStreams"})
+        response.raise_for_status()
+        sources = response.json().get("MediaSources", [])
+        if not sources:
+            raise ValueError("Jellyfin did not provide a media source")
+        return sources[0]
+
+    def download(self, item_id, destination, media_source_id=None):
+        params = {"Static": "true"}
+        if media_source_id:
+            params["MediaSourceId"] = media_source_id
+        with self.client.stream("GET", f"Videos/{quote(item_id, safe='')}/stream", params=params) as response:
             response.raise_for_status()
             with open(destination, "wb") as output:
                 for chunk in response.iter_bytes(1024 * 1024):
                     output.write(chunk)
+
+    def download_external_captions(self, item_id, source, directory):
+        from pathlib import Path
+        from .captions import TEXT_CODECS
+        tracks = []
+        source_id = source["Id"]
+        for stream in source.get("MediaStreams", []):
+            if stream.get("Type") != "Subtitle" or not stream.get("IsExternal"):
+                continue
+            if str(stream.get("Codec", "")).lower() not in TEXT_CODECS:
+                print("Skipped a bitmap/unsupported external subtitle; add an OCR'd text sidecar if required.")
+                continue
+            index = int(stream["Index"])
+            # Construct the trusted Jellyfin endpoint; never follow DeliveryUrl
+            # from metadata or expose an authenticated URL to the viewer.
+            endpoint = f"Videos/{quote(item_id,safe='')}/{quote(source_id,safe='')}/Subtitles/{index}/0/Stream.vtt"
+            response = self.client.get(endpoint)
+            response.raise_for_status()
+            if not response.text.lstrip('\ufeff').startswith("WEBVTT"):
+                raise ValueError("Jellyfin subtitle response was not WebVTT")
+            path = Path(directory) / f"external-{index}.vtt"
+            path.write_bytes(response.content)
+            tracks.append({"source": path, "language": stream.get("Language", "und"),
+                           "label": stream.get("DisplayTitle"), "default": stream.get("IsDefault", False)})
+        return tracks

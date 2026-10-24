@@ -12,16 +12,27 @@ from .media import prepare, save_json
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def register(args, asset_id, title, source, kind, copy=False, provenance=None):
+def register(args, asset_id, title, source, kind, copy=False, provenance=None, subtitles=None):
     if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", asset_id):
         raise ValueError("Use a simple slug for the asset ID")
     catalog_path = args.config / "catalog.json"
     catalog = json.loads(catalog_path.read_text()) if catalog_path.exists() else {"assets": {}}
     if asset_id in catalog["assets"] or (args.media / f"{asset_id}.mp4").exists():
         raise ValueError("Asset ID already exists; use a new ID to keep published media immutable")
-    duration = prepare(source, args.media / f"{asset_id}.mp4", copy=copy)
+    from .captions import extract_embedded, caption_record
+    args.media.mkdir(parents=True, exist_ok=True)
+    # Stage the whole asset so a failed subtitle conversion leaves a retryable
+    # import rather than an orphaned MP4 that blocks the same asset ID.
+    with tempfile.TemporaryDirectory(dir=args.media) as staging:
+        staging = Path(staging)
+        duration = prepare(source, staging / f"{asset_id}.mp4", copy=copy)
+        captions = extract_embedded(source, asset_id, staging)
+        for subtitle in subtitles or []:
+            captions.append(caption_record(asset_id, staging, **subtitle))
+        for prepared in staging.iterdir():
+            os.replace(prepared, args.media / prepared.name)
     catalog["assets"][asset_id] = {"title": title, "kind": kind, "duration": duration,
-                                     "file": f"{asset_id}.mp4", "provenance": provenance or "Operator supplied"}
+                                     "file": f"{asset_id}.mp4", "provenance": provenance or "Operator supplied", "captions": captions}
     save_json(catalog_path, catalog)
     print(f"Prepared {asset_id}: {duration:.3f}s. Add its ID to schedule.json and restart the station.")
 
@@ -61,6 +72,8 @@ def demo(args):
         catalog["assets"][key] = {"title": title.title(), "kind": kind, "duration": seconds,
                                       "file": path.name, "provenance": "Original synthetic demonstration; CC0"}
     save_json(args.config / "catalog.json", catalog)
+    from .captions import add_demo_captions
+    add_demo_captions(args.config, args.media)
     save_json(args.config / "schedule.json", {
         "channel": "Oddity Television", "timezone": "Europe/London", "mode": "cycle",
         "origin": "2026-01-01T00:00:00Z", "period_seconds": 120, "filler": ["oddity", "ident"],
@@ -76,6 +89,12 @@ def main():
     parser.add_argument("--media", type=Path, default=Path(os.getenv("STATION_MEDIA", ROOT / "media")))
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("demo", help="Generate original, synthetic sample clips and a 2-minute broadcast cycle")
+    sub.add_parser("demo-subtitles", help="Add descriptive captions to an existing synthetic demo without regenerating video")
+    captions = sub.add_parser("add-subtitles", help="Attach a text sidecar to an existing prepared asset")
+    captions.add_argument("source", type=Path)
+    captions.add_argument("--id", required=True)
+    captions.add_argument("--language", default="en")
+    captions.add_argument("--label")
     add = sub.add_parser("add", help="Prepare a local programme or archive clip without modifying the original")
     add.add_argument("source", type=Path)
     for p in [add]:
@@ -84,6 +103,8 @@ def main():
         p.add_argument("--kind", default="programme", choices=["programme", "advert", "ident", "trailer", "archive", "public-information", "interstitial"])
         p.add_argument("--copy", action="store_true")
         p.add_argument("--provenance", required=True, help="Source and rights/permission notes (kept private)")
+        p.add_argument("--subtitle", type=Path, action="append", default=[])
+        p.add_argument("--subtitle-language", default="en")
     discover = sub.add_parser("discover", help="List Jellyfin films/episodes, optionally within a library, collection or series")
     for flag in ["parent", "genre", "tag"]:
         discover.add_argument("--" + flag)
@@ -103,8 +124,21 @@ def main():
             if (args.config / "catalog.json").exists() or (args.config / "schedule.json").exists():
                 raise ValueError("Demo refuses to replace an existing station. Use fresh --config and --media directories.")
             demo(args)
+        elif args.command == "demo-subtitles":
+            from .captions import add_demo_captions
+            print(f"Added captions to {add_demo_captions(args.config, args.media)} demo assets. Restart the station.")
+        elif args.command == "add-subtitles":
+            from .captions import caption_record
+            path = args.config / "catalog.json"
+            catalog = json.loads(path.read_text())
+            asset = catalog["assets"][args.id]
+            track = caption_record(args.id, args.media, args.source, args.language, args.label)
+            asset.setdefault("captions", []).append(track)
+            save_json(path, catalog)
+            print("Subtitle track added. Restart the station to publish it.")
         elif args.command == "add":
-            register(args, args.id, args.title, args.source, args.kind, args.copy, args.provenance)
+            subtitles = [{"source": path, "language": args.subtitle_language} for path in args.subtitle]
+            register(args, args.id, args.title, args.source, args.kind, args.copy, args.provenance, subtitles)
         elif args.command in ("discover", "import-jellyfin"):
             from .jellyfin import Jellyfin
             client = Jellyfin()
@@ -114,8 +148,10 @@ def main():
                 else:
                     with tempfile.TemporaryDirectory() as tmp:
                         source = Path(tmp) / "source.media"
-                        client.download(args.item_id, source)
-                        register(args, args.id, args.title, source, "programme", args.copy, "Jellyfin prefetch; operator to confirm broadcast rights")
+                        media_source = client.media_source(args.item_id)
+                        client.download(args.item_id, source, media_source["Id"])
+                        subtitles = client.download_external_captions(args.item_id, media_source, tmp)
+                        register(args, args.id, args.title, source, "programme", args.copy, "Jellyfin prefetch; operator to confirm broadcast rights", subtitles)
             finally:
                 client.close()
         else:

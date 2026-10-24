@@ -95,6 +95,19 @@ def create_app(schedule=None):
             raise HTTPException(404, "Broadcast asset unavailable")
         return FileResponse(path, media_type="video/mp4", headers={"Cache-Control": "public, max-age=3600"})
 
+    @app.api_route("/captions/{asset_id}/{track_id}.vtt", methods=["GET", "HEAD"])
+    def captions(asset_id: str, track_id: str):
+        station = app.state.schedule
+        if asset_id not in station.allowed:
+            raise HTTPException(404, "Unknown broadcast captions")
+        track = next((t for t in station.assets[asset_id].get("captions", []) if t["id"] == track_id), None)
+        if not track:
+            raise HTTPException(404, "Unknown broadcast captions")
+        path = (station.root / track["file"]).resolve()
+        if not path.is_relative_to(station.root) or path.suffix.lower() != ".vtt" or not path.is_file():
+            raise HTTPException(404, "Captions unavailable")
+        return FileResponse(path, media_type="text/vtt; charset=utf-8", headers={"Cache-Control": "public, max-age=3600"})
+
     @app.get("/guide.xml")
     def xmltv():
         from xml.etree.ElementTree import Element, SubElement, tostring
@@ -111,7 +124,7 @@ def create_app(schedule=None):
             SubElement(p, "category").text = station.assets[event.asset].get("kind", "programme")
         return Response(tostring(tv, encoding="utf-8", xml_declaration=True), media_type="application/xml")
 
-    for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/epg.js", "epg.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css")]:
+    for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/epg.js", "epg.js", "text/javascript"), ("/tv-controls.js", "tv-controls.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css")]:
         def make_static(name, mime):
             def static_file():
                 return FileResponse(BASE / "web" / name, media_type=mime)

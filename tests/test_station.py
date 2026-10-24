@@ -108,7 +108,7 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_public_surface_has_no_secrets_and_no_path_or_proxy_access(self):
         with patch.dict("os.environ", {"JELLYFIN_API_KEY": "PRIVATE_TEST_TOKEN", "JELLYFIN_URL": "http://private-jellyfin:8096"}):
-            for url in ["/", "/player.js", "/epg.js", "/channel-two-playback.js", "/style.css", "/api/channel", "/api/guide", "/guide.xml"]:
+            for url in ["/", "/player.js", "/epg.js", "/tv-controls.js", "/channel-two-playback.js", "/style.css", "/api/channel", "/api/guide", "/guide.xml"]:
                 response = await self.client.get(url)
                 self.assertEqual(response.status_code, 200)
                 for private in ["PRIVATE_TEST_TOKEN", "private-jellyfin", str(self.station.root), "provenance", "X-Emby-Token"]:

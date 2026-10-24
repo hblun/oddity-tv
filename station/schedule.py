@@ -46,6 +46,19 @@ class Schedule:
                 raise ValueError(f"Missing or unsafe media for asset {key}")
             if path.suffix.lower() != ".mp4":
                 raise ValueError("Prepare assets as browser-compatible MP4 first")
+            seen_tracks = set()
+            for track in asset.get("captions", []):
+                if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", track["id"]) or track["id"] in seen_tracks:
+                    raise ValueError("Caption track IDs must be unique slugs")
+                seen_tracks.add(track["id"])
+                caption = (self.root / track["file"]).resolve()
+                if not caption.is_relative_to(self.root) or caption.suffix.lower() != ".vtt" or not caption.is_file():
+                    raise ValueError(f"Missing or unsafe captions for asset {key}")
+                with caption.open(encoding="utf-8-sig") as handle:
+                    if handle.read(6) != "WEBVTT":
+                        raise ValueError(f"Captions for asset {key} must be WebVTT")
+                if not re.fullmatch(r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*", track.get("language", "und")):
+                    raise ValueError("Caption language must be a language tag such as en or en-GB")
         self.blocks = config["blocks"]
         self.filler = config.get("filler", [])
         if not self.blocks or not self.filler:
@@ -166,7 +179,10 @@ class Schedule:
         return {"id": f"{event.start:.3f}:{event.asset}", "asset": event.asset,
                 "title": asset["title"], "kind": asset.get("kind", "programme"),
                 "block": event.block, "start": event.start, "end": event.end,
-                "source_in": event.source_in, "url": f"/media/{event.asset}.mp4"}
+                "source_in": event.source_in, "url": f"/media/{event.asset}.mp4",
+                "captions": [{"id": t["id"], "language": t.get("language", "und"),
+                              "label": t.get("label", t.get("language", "Subtitles")), "default": t.get("default", False),
+                              "url": f"/captions/{event.asset}/{t['id']}.vtt"} for t in asset.get("captions", [])]}
 
     def guide(self, now, hours=6):
         events = self.timeline(now, now + hours * 3600)

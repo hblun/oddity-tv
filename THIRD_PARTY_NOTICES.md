@@ -20,6 +20,8 @@ Original `channel-two.js` blob: `e8c229688dc245c9e78cf8cdfd07bf6169a6af0e`. Unmo
 
 Adaptation: `web/channel-two-playback.js`, extracted from `play(path)`'s clear/source/load/play sequence. jQuery/UI was removed. Seeking waits for metadata and uses the shared clock; only station asset URLs are accepted. Viewer-local advert decisions and debug skipping are not used.
 
+The transport now also has preparation/ready callbacks for native subtitle tracks and a playback-intent guard so a pending metadata event cannot undo a viewer's pause. Subtitle conversion, private prefetch, local controls and the viewing-state rules are new integration code.
+
 ## JellyfinTV — DrewThomasson
 
 Source: https://github.com/DrewThomasson/JellyfinTV

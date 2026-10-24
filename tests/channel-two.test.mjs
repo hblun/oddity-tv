@@ -38,3 +38,16 @@ test('autoplay rejection reaches the recovery callback', async () => {
   assert.equal(blocked,true);
   assert.equal(video.currentTime,99.95);
 });
+
+test('a pause during metadata loading prevents late autoplay',()=>{
+  const video=fakeVideo();
+  let running=true, ready=false;
+  playScheduledFile(video,'/media/feature.mp4',()=>28,()=>{}, {
+    shouldPlay:()=>running,onReady:()=>{ready=true;}
+  });
+  running=false;
+  video.onloadedmetadata();
+  assert.equal(ready,true);
+  assert.equal(video.currentTime,28);
+  assert.equal(video.plays,0);
+});

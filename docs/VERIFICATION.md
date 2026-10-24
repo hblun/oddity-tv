@@ -1,5 +1,15 @@
 # Verification record — 24 October 2026
 
+## Television controls and subtitles update
+
+The receiver now includes local play/pause, volume, native WebVTT subtitles and track/size selection, programme OSD, theatre/full-screen/PiP controls, picture framing and an optional static CRT texture. Pause freezes the local picture without changing the station schedule; play explicitly returns to live. Text subtitles are prepared once from embedded streams, operator sidecars or private Jellyfin external-subtitle endpoints. Bitmap OCR and DVR playback are not implemented.
+
+Current results: **21 Python tests and 15 JavaScript tests pass**. Real FFmpeg tests mux/extract a text stream and preserve a cue near its original 22-second position after an advert break. Matroska/AAC priming may shift timestamps by about 21ms; the test accounts for this while rejecting a reset to the excerpt start. Another test verifies a failed subtitle import is retryable and does not change the original media. Caption routes are checked for correct MIME/HEAD, same-origin opaque URLs, private-path omission, traversal and symlink rejection. Mock Jellyfin checks verify authenticated subtitle prefetch never follows metadata's external `DeliveryUrl`. The endpoint route shape was checked against Jellyfin's upstream `SubtitleController.cs`; no live server response is claimed.
+
+JavaScript checks cover pause through a scheduled event change, explicit live resume, blocking late metadata autoplay, caption language fallback and malformed/blocked local storage. Syntax, compilation, HTML element-reference, Compose and whitespace checks pass.
+
+`scripts/tv_acceptance.py` is supplied to check actual native cues, pause across a programme boundary, live resume, volume, picture/CC sizing, OSD, CRT/theatre preferences, full-screen controls when supported, persistence and mobile overflow. It is **not run here**: the workspace socket restriction still prevents the local browser/server path. No browser/native-caption, fullscreen/PiP, visual screenshot or live Jellyfin pass is claimed. Existing browser acceptance scripts are also still pending on a normal host.
+
 ## EPG update
 
 The viewer now has a full-width programme board, separate now/next cards, British-date browsing, search, programme-only filtering, per-transmission details and optional Prevue-style scrolling. Ringmast4r-TV's MIT-licensed guide informed the presentation; the scrolling timer is adapted and credited in `THIRD_PARTY_NOTICES.md`.
@@ -12,8 +22,8 @@ The new `scripts/epg_acceptance.py` checks desktop/mobile navigation, programme 
 
 - Original synthetic sample MP4s generated with FFmpeg 7.1.5: seven files, about 1.5 MB total.
 - `python -m station.cli validate`: passes prepared media codec/duration checks and 24-hour scheduling validation, including 7,200 upcoming demo entries.
-- `python -m unittest discover -s tests -v`: **16 tests pass** after the EPG update.
-- JavaScript clock, guide and Channel Two transport tests: **11 tests pass**, run directly with Node 24.19.0.
+- `python -m unittest discover -s tests -v`: **21 tests pass** after the television controls/subtitles update.
+- JavaScript clock, guide, local controls and Channel Two transport tests: **15 tests pass**, run directly with Node 24.19.0.
 - Python source compilation and JavaScript syntax checks pass.
 - `docker compose config --quiet` passes; Compose YAML and JSON configuration parse successfully.
 - Vendored upstream files match the Git blob hashes recorded in `THIRD_PARTY_NOTICES.md` exactly.

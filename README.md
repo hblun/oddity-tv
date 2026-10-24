@@ -56,6 +56,8 @@ docker compose --profile tools run --rm tools import-jellyfin JELLYFIN_ITEM_ID -
 
 The importer downloads the original using Jellyfin's static video endpoint, without requesting a Jellyfin transcode. It then prepares an MP4 in `media/` and records its **measured output duration** in `config/catalog.json`. With an already compatible H.264/yuv420p and AAC source, append `--copy` to remux without video encoding. Incompatible streams are refused in copy mode. Keys go in request headers, redirects are refused, and errors do not echo upstream URLs.
 
+Embedded text subtitles are extracted automatically to WebVTT. The Jellyfin importer also prefetches external text subtitles for the selected media source through authenticated server-side calls. Viewer caption requests go only to the station cache. This adds text conversion, not live video encoding. Bitmap subtitles such as PGS/DVD need OCR or a supplied SRT/WebVTT sidecar; they are reported and skipped. The live Jellyfin subtitle endpoints still need verification against your server.
+
 `JELLYFIN_URL` may include the server's configured base path. HTTP is suitable only over a trusted private network or tunnel; use HTTPS otherwise. No original library files are changed. The CLI currently requires operator selection; it does not choose the next series episode or shuffle a collection automatically.
 
 ### Local programmes, adverts and archive media
@@ -68,6 +70,26 @@ docker compose --profile tools run --rm tools add /imports/ident.mp4 --id ident-
 ```
 
 Kinds include `programme`, `advert`, `ident`, `trailer`, `archive`, `public-information` and `interstitial`. Source and rights notes stay in the private catalogue. British Pathé, BFI and British Council material is not automatically cleared for internet rebroadcast; record the permission for each asset. No archive scraping/downloading is performed automatically.
+
+### Supply subtitles
+
+Add a subtitle sidecar to an existing prepared programme without re-encoding its video:
+
+```sh
+docker compose --profile tools run --rm --build tools add-subtitles /imports/film.en.srt --id evening-film --language en --label "English"
+docker compose restart station
+```
+
+Use SRT, WebVTT, ASS/SSA or another text format supported by FFmpeg. Repeat the command for other languages or SDH tracks. For a new local import, `add` also accepts repeated `--subtitle /imports/file.srt` arguments and `--subtitle-language en`. Subtitles follow the original source timeline: a resumed programme excerpt retains its original cue times across advert breaks. Track labels/languages and opaque URLs are public; source paths remain private. Keep the generated `.vtt` files alongside the prepared MP4s when copying the broadcast cache to another host.
+
+New demos include original descriptive captions for the synthetic test tones. To add them to an existing demo, without regenerating video:
+
+```sh
+docker compose --profile tools run --rm --build tools demo-subtitles
+docker compose restart station
+```
+
+This only touches assets marked as the original synthetic demo. It does not generate speech transcripts, translate subtitles or invent subtitles for real programmes. Previously imported assets whose subtitles were stripped need a supplied sidecar or a fresh import from the original source with a new asset ID.
 
 ## Programme the channel
 
@@ -116,7 +138,17 @@ Optional **Auto-scroll** borrows Ringmast4r's guide-channel idea; it is off init
 
 The browser estimates server time from the response and half of the round-trip time, then advances a monotonic clock. It seeks to `source_in + (server time − event start)`, changes clips at boundaries and corrects drift above 1.25 seconds. Smaller differences receive a gentle playback-rate correction. Target: roughly 1–2 seconds between viewers on a stable connection, not frame-accurate broadcast synchronisation. Buffering, long keyframe intervals in copied sources and slow networks can increase the difference. Encoding once inserts two-second keyframes for practical seeking.
 
-The browser starts muted following a click, supports sound/fullscreen, rejoins after visibility/network changes, and retries failed media. A cached 15-minute guide lets transitions continue during a short guide outage. An unavailable programme produces a retry message; this slice has no automatic emergency-media substitution. It requires an H.264-capable modern browser. Clip transitions can have a brief loading gap; seamless playout and native captions are future work.
+The browser waits for a tune-in click and starts muted on a new device. It rejoins after visibility/network changes and retries failed media while playing. A cached 15-minute guide lets transitions continue during a short guide outage. An unavailable programme produces a retry message; this slice has no automatic emergency-media substitution. It requires an H.264-capable modern browser. Clip transitions can have a brief loading gap; seamless playout remains future work.
+
+### Television controls
+
+The receiver has **play/pause**, mute/volume, **CC**, programme information, theatre mode, picture-in-picture where available, and full screen. Full screen includes the remote and settings on browsers supporting element fullscreen; Safari's native video fullscreen uses the browser's own controls. The picture menu offers fitted video, 4:3 and 16:9 frames, optional edge cropping, larger subtitles and a subtle static CRT texture. The CRT effect is off by default and has no flashing/flicker animation.
+
+Pause freezes only your screen, including through scheduled programme changes. The station and guide continue. **Play live** rejoins the current shared broadcast position; this is not a DVR that resumes from the paused point. The paused overlay makes that behaviour explicit. There is no scrub/seek bar into future programmes. Native/PiP pause controls follow the same rule where the browser exposes them.
+
+Subtitles use native WebVTT tracks, with a language/track selector and normal/large sizes. CC is disabled when a transmission has no supplied tracks, and the language preference returns on the next programme that supports it. PiP subtitle display varies by browser. Volume, caption language/size, picture framing, CRT and theatre preferences stay in local browser storage; no viewing history or preferences are sent to the server. Blocked local storage is supported.
+
+Keyboard controls: **Space/K** play or pause, **M** mute, **C** subtitles, **F** full screen, **I** programme information, **T** theatre, **G** guide search, **L** live. Shortcuts yield to inputs, buttons, menus and programme dialogs. The programme name/channel banner appears briefly on tune-in, and Info brings it back.
 
 ## Put it on the internet without exposing home Jellyfin
 
@@ -158,6 +190,7 @@ pip install playwright
 python -m playwright install chromium
 python scripts/browser_acceptance.py --url http://127.0.0.1:8000
 python scripts/epg_acceptance.py --url http://127.0.0.1:8000
+python scripts/tv_acceptance.py --url http://127.0.0.1:8000
 ```
 
 That test tunes in two independent browser contexts at different times, checks rendered video position, waits across at least two automatic programme changes and checks for private requests. It takes up to 65 seconds against the supplied demo. It is intended for this short demo schedule, before substituting feature-length media.
@@ -166,4 +199,4 @@ Workspace verification results and remaining acceptance work are in [docs/VERIFI
 
 ## Scope after this slice
 
-Before building more custom scheduling functionality, reconsider Tunarr. The most useful next steps are an actual Jellyfin import, two-device playback on the intended hardware, then a shared pre-segmented HLS output and optional scheduling UI. Series sequencing, random/metadata rules, automatic archive acquisition, multiple channels, captions and automatic failure slates are not implemented.
+Before building more custom scheduling functionality, reconsider Tunarr. The most useful next steps are an actual Jellyfin import, two-device playback on the intended hardware, then a shared pre-segmented HLS output and optional scheduling UI. Series sequencing, random/metadata rules, automatic archive acquisition, multiple channels, bitmap-subtitle OCR, DVR time-shifting and automatic failure slates are not implemented.
