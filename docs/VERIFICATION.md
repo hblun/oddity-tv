@@ -1,5 +1,11 @@
 # Verification record — 24 October 2026
 
+## Retro red-button styling update
+
+The two-surface layout remains intact. Its skin now uses bundled VT323 pixel lettering, square red selection blocks, black/deep-blue panels, cyan clock/ruler text, yellow focus outlines and hard borders. Native subtitle text retains its sans-serif face. The original 153,116-byte font matches upstream Git blob `afa69098f15bf64849d397f133d9467486904053`; its complete SIL Open Font License accompanies the source and Docker image. The font route uses the correct MIME type and a one-day cache lifetime.
+
+Current checks: **22 Python tests and 18 JavaScript tests pass**, including a new real HTTP test of the bundled font response. The browser acceptance script now waits for font loading before screenshots. Browser rendering remains unavailable here; the new visual styling is source-reviewed, not a rendered visual pass.
+
 ## Stream-and-guide wrapper update
 
 The page now has exactly two main surfaces: live video and a Freeview-style horizontal programme guide. The masthead, promotional headings, separate now/next cards, decorative receiver strip and footer are removed. The guide has a fixed channel rail, proportional cells, shared time ruler, current-time playhead and inline selected-programme information. Today/Tomorrow, earlier/later windows and Now replace the previous board's search/filter/paging/auto-scroll controls. The public guide API retains its query and pagination features.

@@ -14,6 +14,7 @@ COPY station ./station
 COPY web ./web
 COPY THIRD_PARTY_NOTICES.md ./
 COPY vendor/ringmast4r/LICENSE ./licenses/ringmast4r-LICENSE
+COPY vendor/vt323/OFL.txt ./licenses/VT323-OFL.txt
 RUN mkdir -p /app/config /app/media && chmod -R a+rX /app
 USER 1000:1000
 EXPOSE 8000

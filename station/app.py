@@ -124,12 +124,14 @@ def create_app(schedule=None):
             SubElement(p, "category").text = station.assets[event.asset].get("kind", "programme")
         return Response(tostring(tv, encoding="utf-8", xml_declaration=True), media_type="application/xml")
 
-    for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/epg.js", "epg.js", "text/javascript"), ("/tv-controls.js", "tv-controls.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css")]:
+    for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/epg.js", "epg.js", "text/javascript"), ("/tv-controls.js", "tv-controls.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css"), ("/fonts/vt323.ttf", "fonts/vt323.ttf", "font/ttf")]:
         def make_static(name, mime):
             def static_file():
-                return FileResponse(BASE / "web" / name, media_type=mime)
+                headers = {"Cache-Control": "public, max-age=86400"} if mime == "font/ttf" else {}
+                return FileResponse(BASE / "web" / name, media_type=mime, headers=headers)
             return static_file
-        app.add_api_route(route, make_static(filename, content_type), methods=["GET"], include_in_schema=False)
+        methods = ["GET", "HEAD"] if content_type == "font/ttf" else ["GET"]
+        app.add_api_route(route, make_static(filename, content_type), methods=methods, include_in_schema=False)
     return app
 
 

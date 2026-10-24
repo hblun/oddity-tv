@@ -131,6 +131,18 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(xml.findall("programme"))
         self.assertEqual((await self.client.get("/api/channel?hours=999")).status_code, 422)
 
+    async def test_pixel_font_is_bundled_and_cacheable(self):
+        response = await self.client.get('/fonts/vt323.ttf')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['content-type'], 'font/ttf')
+        self.assertTrue(response.content.startswith(b'\x00\x01\x00\x00'))
+        self.assertEqual(response.headers['cache-control'], 'public, max-age=86400')
+        head = await self.client.head('/fonts/vt323.ttf')
+        self.assertEqual(head.status_code, 200)
+        self.assertEqual(head.content, b'')
+        self.assertEqual(head.headers['content-length'], response.headers['content-length'])
+        self.assertEqual((await self.client.get('/fonts/unknown.ttf')).status_code, 404)
+
     async def test_epg_pagination_has_no_missing_or_repeated_transmissions(self):
         now = self.station.origin + 65
         params = {"start": now, "end": now+120, "limit": 3}

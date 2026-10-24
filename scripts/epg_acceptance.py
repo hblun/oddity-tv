@@ -24,6 +24,8 @@ async def run(url):
         try:
             await page.goto(url)
             await expect(page.locator('.programme-button').first).to_be_visible()
+            await page.evaluate('document.fonts.ready')
+            assert await page.evaluate('document.fonts.check(\'22px "Oddity Pixel"\')'), 'Pixel font did not load'
             await expect(page.locator('main > section')).to_have_count(2)
             await expect(page.locator('footer,.masthead,.on-now')).to_have_count(0)
             await page.locator('#tune').click()
@@ -61,6 +63,7 @@ async def run(url):
             phone.on('pageerror',lambda error:errors.append(str(error)))
             await phone.goto(url)
             await expect(phone.locator('.programme-button').first).to_be_visible()
+            await phone.evaluate('document.fonts.ready')
             assert await phone.evaluate('document.documentElement.scrollWidth<=innerWidth'),'Page overflows horizontally'
             left=await phone.locator('#guide-channel').bounding_box()
             await phone.locator('#guide-viewport').evaluate('(e)=>{e.scrollLeft=400;}')
