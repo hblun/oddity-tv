@@ -21,7 +21,7 @@ async def run(url):
         page.on('pageerror',lambda error: errors.append(str(error)))
         try:
             await page.goto(url)
-            await expect(page.locator('#now-title')).not_to_have_text('Finding the transmission…')
+            await expect(page.locator('#detail-title')).not_to_have_text('Loading guide…')
             await page.locator('#tune').click()
             await page.wait_for_function("document.querySelector('video').readyState>=2 && !document.querySelector('video').paused")
             await expect(page.locator('#captions')).to_be_enabled()
@@ -68,7 +68,7 @@ async def run(url):
             phone=await mobile.new_page()
             phone.on('pageerror',lambda error: errors.append(str(error)))
             await phone.goto(url)
-            await expect(phone.locator('#now-title')).not_to_have_text('Finding the transmission…')
+            await expect(phone.locator('#detail-title')).not_to_have_text('Loading guide…')
             assert await phone.evaluate('document.documentElement.scrollWidth<=innerWidth')
             await phone.screenshot(path=str(output/'tv-controls-mobile.png'),full_page=True)
             assert not errors,errors

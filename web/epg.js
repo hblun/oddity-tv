@@ -1,5 +1,4 @@
-// Guide auto-scroll adapted from Ringmast4r/Ringmast4r-TV (MIT, © 2026 ringmast4r).
-// See THIRD_PARTY_NOTICES.md and vendor/ringmast4r/LICENSE.
+// British-time helpers and a compact, time-proportional television guide.
 export const UK_ZONE = 'Europe/London';
 const clockFormat = (seconds = false) => new Intl.DateTimeFormat('en-GB', {
   timeZone: UK_ZONE, hour:'2-digit', minute:'2-digit', ...(seconds ? {second:'2-digit'} : {})
@@ -57,157 +56,181 @@ export function eventState(event, now, nextId) {
   return event.id === nextId ? 'Up next' : 'Later';
 }
 
-// Adapted from startGuideAuto/stopGuideAuto and manual-wheel handling upstream.
-// Native scrolling keeps focused rows visible; movement is opt-in and pauses on
-// every manual interaction instead of taking over wheel/keyboard behaviour.
-export function createGuideScroller(viewport, {onChange = () => {}, onEnd = () => {}} = {}) {
-  let timer = null, guideManualUntil = 0, lastEnd = 0;
-  const pause = () => { guideManualUntil = performance.now() + 8000; };
-  const stop = () => { clearInterval(timer); timer = null; onChange(false); };
-  const start = () => {
-    stop();
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    onChange(true);
-    timer = setInterval(() => {
-      if (document.hidden || performance.now() < guideManualUntil || viewport.contains(document.activeElement)
-          || document.querySelector('dialog[open]')) return;
-      const max = viewport.scrollHeight - viewport.clientHeight;
-      if (max <= 4) return;
-      if (viewport.scrollTop >= max - 1) {
-        if (performance.now() - lastEnd > 3000) { lastEnd = performance.now(); onEnd(); }
-        return;
-      }
-      viewport.scrollTop = Math.min(max, viewport.scrollTop + 0.6);
-    }, 40);
-  };
-  for (const event of ['wheel','pointerdown','keydown','touchstart','focusin']) viewport.addEventListener(event, pause, {passive:true});
-  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  motion.addEventListener('change', () => { if (motion.matches) stop(); });
-  return {start,stop,toggle:() => timer ? stop() : start()};
+// A full-length programme uses the familiar two-hour / half-hour guide. The
+// short demo gets a two-minute / 30-second scale so its clips remain selectable.
+export function guideScale(events) {
+  const longest=Math.max(0,...events.filter(e=>e.kind==='programme').map(e=>e.end-e.start));
+  return longest>=600 ? {span:7200,tick:1800} : longest>=60 ? {span:1200,tick:300} : {span:120,tick:30};
 }
 
-export function createProgrammeGuide({now, watchLive}) {
-  const $ = id => document.getElementById(id);
-  const viewport = $('guide-viewport'), list = $('guide'), dialog = $('programme-dialog');
-  let period = 'now', windowRange = null, cursor = null, rows = new Map(), request = null;
-  let generation = 0, loading = false, selected = null, nextId = null, debounce = null;
-  let fallbackTime = null, fallbackMono = 0;
-  const time = () => now() ?? (fallbackTime === null ? null : fallbackTime + (performance.now()-fallbackMono)/1000);
-  function status(message) { $('guide-status').textContent = message; }
-  function showDetails(event) {
-    selected = event;
-    $('detail-title').textContent = event.title;
-    $('detail-kind').textContent = `${event.kind.replaceAll('-',' ')} · CHANNEL 01`;
-    $('detail-time').textContent = `${dayFormat.format(event.start*1000)} · ${timeText(event.start,true)}–${timeText(event.end,true)} · ${durationText(event.end-event.start)}`;
-    $('detail-block').textContent = event.block;
-    $('detail-note').textContent = event.source_in > 0
-      ? `The programme resumes ${durationText(event.source_in)} into the source, following a scheduled interruption.`
-      : 'Part of the shared broadcast schedule. Select “Watch the live channel” to join whatever is on air now.';
-    if (!dialog.open) dialog.showModal();
+export function gridBox(event,start,end) {
+  const left=Math.max(start,event.start),right=Math.min(end,event.end);
+  if (right<=left || end<=start) return null;
+  return {left:(left-start)/(end-start)*100,width:(right-left)/(end-start)*100,
+    before:event.start<start,after:event.end>end};
+}
+
+export function windowAt(timestamp,scale,day) {
+  const start=Math.max(day.start,Math.min(day.end-1,Math.floor(timestamp/scale.tick)*scale.tick));
+  return {start,end:Math.min(start+scale.span,day.end)};
+}
+
+export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
+  const $=id=>document.getElementById(id);
+  const viewport=$('guide-viewport'),list=$('guide');
+  let period='today',range=null,scale=null,rows=new Map(),selected=null,followLive=true;
+  let request=null,generation=0,loading=false,fallbackTime=null,fallbackMono=0,nextId=null,channel='Oddity Television';
+  const time=()=>now() ?? (fallbackTime===null ? null : fallbackTime+(performance.now()-fallbackMono)/1000);
+  const bounds=()=>periodWindow(period,time());
+  const status=message=>{if ($('guide-status').textContent!==message) $('guide-status').textContent=message;};
+  function zonedTime(stamp,precise=false) {
+    return new Intl.DateTimeFormat('en-GB',{timeZone:UK_ZONE,hour:'2-digit',minute:'2-digit',...(precise ? {second:'2-digit'} : {}),timeZoneName:'short'}).format(stamp*1000);
   }
-  function makeRow(event) {
-    const row = document.createElement('li'), button = document.createElement('button');
-    row.className = 'guide-row'; row.dataset.eventId = event.id;
-    button.className = 'programme-button'; button.type = 'button';
-    const stamp = document.createElement('time'); stamp.className = 'programme-time'; stamp.dateTime = new Date(event.start*1000).toISOString();
-    stamp.append(document.createTextNode(timeText(event.start,event.end-event.start<60 || event.start%60!==0)));
-    const day = document.createElement('small'); day.textContent = dayFormat.format(event.start*1000); stamp.append(day);
-    const info = document.createElement('span'); info.className = 'programme-info';
-    const title = document.createElement('span'); title.className = 'programme-title'; title.textContent = event.title;
-    const meta = document.createElement('span'); meta.className = 'programme-meta';
-    const kind = document.createElement('span'); kind.className = 'kind'; kind.dataset.kind = event.kind; kind.textContent = event.kind.replaceAll('-',' ');
-    const block = document.createElement('span'); block.className = 'block-name'; block.textContent = event.block;
-    meta.append(kind,block);
-    if (event.source_in > 0) { const resumes = document.createElement('span'); resumes.textContent = 'Resumes'; meta.append(resumes); }
-    info.append(title,meta);
-    const duration = document.createElement('span'); duration.className = 'programme-duration'; duration.textContent = durationText(event.end-event.start);
-    const state = document.createElement('span'); state.className = 'programme-state';
-    button.append(stamp,info,duration,state); row.append(button);
-    button.addEventListener('click', () => showDetails(event));
+  function select(event,manual=false) {
+    selected=event;
+    if (manual) followLive=false;
+    $('detail-title').textContent=event.title;
+    const state=eventState(event,time(),nextId);
+    $('detail-kind').textContent=`01 ${channel} · ${event.kind.replaceAll('-',' ')} · ${state}${event.captions?.length ? ' · SUB' : ''}`;
+    $('detail-time').textContent=`${zonedTime(event.start,event.end-event.start<60 || event.start%60!==0)}–${timeText(event.end,event.end-event.start<60 || event.end%60!==0)} · ${durationText(event.end-event.start)}`;
+    $('detail-block').textContent=` · ${event.block}${event.source_in>0 ? ' · Resumes' : ''}`;
+    for (const item of rows.values()) {
+      const active=item.event.id===event.id;
+      item.row.classList.toggle('is-selected',active);
+      item.button.setAttribute('aria-pressed',String(active));
+    }
+  }
+  function shortTitle(event) {
+    return {advert:'Ad',ident:'Ident',trailer:'Trailer',interstitial:'Clip','public-information':'PIF'}[event.kind] || event.title;
+  }
+  function makeCell(event) {
+    const box=gridBox(event,range.start,range.end);
+    if (!box) return null;
+    const row=document.createElement('li'),button=document.createElement('button');
+    row.className='guide-row';row.dataset.eventId=event.id;
+    row.style.left=`${box.left}%`;row.style.width=`${box.width}%`;
+    button.className='programme-button';button.type='button';button.title=`${event.title} · ${timeText(event.start,true)}–${timeText(event.end,true)}`;
+    const title=document.createElement('span');title.className='programme-title';
+    title.textContent=box.width<10 ? shortTitle(event) : event.title;
+    const stamp=document.createElement('span');stamp.className='programme-time';stamp.textContent=timeText(event.start,scale.tick<60);
+    const state=document.createElement('span');state.className='programme-state';
+    if (box.width<8) row.classList.add('short-cell');
+    if (box.before) {const arrow=document.createElement('span');arrow.className='continues before';arrow.textContent='‹';arrow.setAttribute('aria-hidden','true');button.append(arrow);}
+    if (box.after) {const arrow=document.createElement('span');arrow.className='continues after';arrow.textContent='›';arrow.setAttribute('aria-hidden','true');button.append(arrow);}
+    button.append(stamp,title,state);row.append(button);
+    button.addEventListener('focus',()=>select(event,true));button.addEventListener('click',()=>select(event,true));
+    button.addEventListener('keydown',e=>{
+      if (!['ArrowLeft','ArrowRight'].includes(e.key)) return;
+      e.preventDefault();
+      const items=[...rows.values()],index=items.findIndex(item=>item.event.id===event.id);
+      const target=items[index+(e.key==='ArrowLeft' ? -1 : 1)];
+      if (target) {target.button.focus({preventScroll:true});target.row.scrollIntoView({block:'nearest',inline:'nearest'});}
+    });
     return {row,button,state,event};
   }
-  function updateLive(timestamp, upcomingId = null) {
-    nextId = upcomingId;
+  function navigation() {
+    const day=bounds();
+    $('guide-prev').disabled=!range || range.start<=day.start;
+    $('guide-next').disabled=!range || range.end>=day.end;
+    $('guide-date').textContent=dayFormat.format((range?.start ?? time())*1000);
+    $('guide-window').textContent=range ? `${zonedTime(range.start,scale.tick<60)} – ${zonedTime(range.end,scale.tick<60)}` : 'Programme times';
+    for (const button of document.querySelectorAll('[data-period]')) button.setAttribute('aria-pressed',String(button.dataset.period===period));
+  }
+  function drawRuler() {
+    $('guide-times').replaceChildren();
+    const count=Math.ceil((range.end-range.start)/scale.tick);
+    for (let i=0;i<count;i++) {
+      const label=document.createElement('span'),stamp=range.start+i*scale.tick;
+      label.textContent=timeText(stamp,scale.tick<60);label.style.left=`${i*scale.tick/(range.end-range.start)*100}%`;
+      $('guide-times').append(label);
+    }
+  }
+  function updateLive(timestamp,upcomingId=null) {
+    if (timestamp===null) return;
+    nextId=upcomingId ?? nextId;
     for (const item of rows.values()) {
-      const state = eventState(item.event,timestamp,nextId);
-      if (item.state.textContent === state) continue;
-      item.state.textContent = state;
-      item.row.classList.toggle('is-live',state==='On air');
-      item.row.classList.toggle('is-past',state==='Earlier');
-      if (state==='On air') item.button.setAttribute('aria-current','true'); else item.button.removeAttribute('aria-current');
-      item.button.setAttribute('aria-label',`${item.event.title}, ${dayFormat.format(item.event.start*1000)}, ${timeText(item.event.start,true)}, ${durationText(item.event.end-item.event.start)}, ${state}. Show programme details.`);
+      const state=eventState(item.event,timestamp,nextId);
+      if (item.state.textContent===state) continue;
+      item.state.textContent=state;
+      item.row.classList.toggle('is-live',state==='On air');item.row.classList.toggle('is-past',state==='Earlier');
+      if (state==='On air') item.button.setAttribute('aria-current','true');else item.button.removeAttribute('aria-current');
+      item.button.setAttribute('aria-label',`${item.event.title}, ${dayFormat.format(item.event.start*1000)}, ${zonedTime(item.event.start,true)}, ${durationText(item.event.end-item.event.start)}, ${state}. Select programme information.`);
     }
-    if (selected && dialog.open) $('detail-watch').textContent = eventState(selected,timestamp,nextId)==='On air' ? 'Watch this transmission ↗' : 'Watch the live channel ↗';
+    if (range) {
+      const inView=timestamp>=range.start && timestamp<range.end;
+      $('guide-playhead').hidden=!inView;
+      if (inView) $('guide-playhead').style.left=`${(timestamp-range.start)/(range.end-range.start)*100}%`;
+      if (followLive && timestamp>=range.end && !loading && !viewport.contains(document.activeElement)) {range=null;load();}
+    }
+    const active=[...rows.values()].find(item=>item.event.start<=timestamp && timestamp<item.event.end)?.event;
+    if (followLive && active && selected?.id!==active.id) select(active);
+    else if (selected) {
+      const state=eventState(selected,timestamp,nextId);
+      $('detail-kind').textContent=`01 ${channel} · ${selected.kind.replaceAll('-',' ')} · ${state}${selected.captions?.length ? ' · SUB' : ''}`;
+    }
   }
-  async function load(more = false) {
-    if (more && (loading || cursor===null)) return;
-    const token = ++generation;
-    request?.abort(); const controller = new AbortController(); request = controller;
-    const abortTimer = setTimeout(() => controller.abort(),8000);
-    loading = true; viewport.setAttribute('aria-busy','true'); $('guide-more').disabled = true;
-    status(more ? 'Receiving more programmes…' : 'Receiving the programme guide…');
-    if (!more) windowRange = time() === null ? null : periodWindow(period,time());
-    const params = new URLSearchParams({limit:'60',q:$('guide-search').value.trim(),programmes_only:String($('programmes-only').checked)});
-    if (windowRange) { params.set('start',windowRange.start); params.set('end',windowRange.end); }
-    if (more) params.set('after',cursor);
+  async function load() {
+    const token=++generation;request?.abort();const controller=new AbortController();request=controller;
+    const timeout=setTimeout(()=>controller.abort(),10000);loading=true;viewport.setAttribute('aria-busy','true');status('Loading…');
     try {
-      const response = await fetch(`/api/guide?${params}`,{cache:'no-store',signal:controller.signal});
-      if (!response.ok) throw new Error('Guide unavailable');
-      const data = await response.json();
-      if (token!==generation) return;
-      fallbackTime = data.server_time; fallbackMono = performance.now();
-      if (!windowRange && period!=='now') return load();
-      windowRange = {start:data.start,end:data.end}; cursor = data.next_cursor;
-      if (!more) { list.replaceChildren(); rows = new Map(); viewport.scrollTop = 0; }
-      const fragment = document.createDocumentFragment();
-      for (const event of data.events) {
-        if (rows.has(event.id)) continue;
-        const item = makeRow(event); rows.set(event.id,item); fragment.append(item.row);
+      if (!scale || !range || time()===null) {
+        const sampleParams=new URLSearchParams({limit:'60'});
+        if (time()!==null) {
+          const day=bounds();
+          sampleParams.set('start',period==='today' && followLive ? time() : day.start);
+          sampleParams.set('end',day.end);
+        }
+        const initial=await fetch(`/api/guide?${sampleParams}`,{cache:'no-store',signal:controller.signal});
+        if (!initial.ok) throw new Error('Guide unavailable');
+        const sample=await initial.json();if (token!==generation) return;
+        fallbackTime=sample.server_time;fallbackMono=performance.now();channel=sample.channel;
+        scale=guideScale(sample.events);
+        const day=bounds();range=windowAt(period==='today' && followLive ? time() : day.start,scale,day);
       }
-      list.append(fragment);
-      $('guide-channel-name').textContent = data.channel;
-      $('guide-date').textContent = `${dayFormat.format(data.start*1000).toUpperCase()}${period==='now' ? ' · NEXT 24 HOURS' : ''}`;
-      $('guide-empty').hidden = rows.size > 0;
-      $('guide-more').hidden = cursor===null;
-      const last = [...rows.values()].at(-1)?.event;
-      status(rows.size ? `${rows.size} transmissions${last ? ` · through ${timeText(last.end,true)}` : ''}${cursor===null ? ' · End of this guide' : ''}` : 'No transmissions found for this selection.');
-      updateLive(time(),nextId);
-    } catch (error) {
-      if (token!==generation) return;
-      status(`Guide unavailable. ${rows.size ? 'Previous results remain. ' : ''}Use Refresh to try again; the live broadcast continues.`);
-    } finally {
-      clearTimeout(abortTimer);
-      if (token===generation) { loading = false; viewport.setAttribute('aria-busy','false'); $('guide-more').disabled = false; }
-    }
+      const queryRange={...range},events=[];let cursor=null;
+      do {
+        const params=new URLSearchParams({start:queryRange.start,end:queryRange.end,limit:'100'});
+        if (cursor!==null) params.set('after',cursor);
+        const response=await fetch(`/api/guide?${params}`,{cache:'no-store',signal:controller.signal});
+        if (!response.ok) throw new Error('Guide unavailable');
+        const data=await response.json();if (token!==generation) return;
+        events.push(...data.events);cursor=data.next_cursor;channel=data.channel;
+        if (events.length>2000) throw new Error('Too many short transmissions');
+      } while (cursor!==null);
+      const previous=selected;
+      rows=new Map();const fragment=document.createDocumentFragment();
+      for (const event of events) {if (rows.has(event.id)) continue;const item=makeCell(event);if (item) {rows.set(event.id,item);fragment.append(item.row);}}
+      list.replaceChildren(fragment);viewport.scrollLeft=0;
+      $('guide-channel-name').textContent=channel;$('guide-channel').setAttribute('aria-label',`Watch ${channel} live`);
+      $('guide-empty').hidden=rows.size>0;$('guide-canvas').hidden=rows.size===0;
+      drawRuler();navigation();
+      const chosen=followLive ? events.find(e=>e.start<=time() && time()<e.end) : events.find(e=>e.id===previous?.id);
+      if (chosen || events[0]) select(chosen || events[0]);
+      else {$('detail-title').textContent='No programme information';$('detail-kind').textContent=channel;$('detail-time').textContent='';$('detail-block').textContent='';selected=null;}
+      updateLive(time(),nextId);status(scale.span===120 ? '30-second intervals' : 'All times UK');
+    } catch {
+      if (token===generation) status('Guide unavailable. Refresh to retry.');
+    } finally {clearTimeout(timeout);if (token===generation) {loading=false;viewport.setAttribute('aria-busy','false');}}
   }
-  for (const button of document.querySelectorAll('[data-period]')) button.addEventListener('click', () => {
-    period = button.dataset.period;
-    for (const sibling of document.querySelectorAll('[data-period]')) sibling.setAttribute('aria-pressed',String(sibling===button));
-    load();
+  function goNow() {period='today';followLive=true;range=null;load();}
+  for (const button of document.querySelectorAll('[data-period]')) button.addEventListener('click',()=>{period=button.dataset.period;followLive=period==='today';range=null;load();});
+  function step(direction) {
+    if (!range || time()===null) return;
+    const day=bounds(),start=Math.max(day.start,range.start+direction*scale.span);
+    if (start>=day.end) return;
+    range={start,end:Math.min(start+scale.span,day.end)};followLive=false;load();
+  }
+  $('guide-prev').addEventListener('click',()=>step(-1));$('guide-next').addEventListener('click',()=>step(1));
+  $('guide-now').addEventListener('click',goNow);$('guide-refresh').addEventListener('click',()=>load());
+  viewport.addEventListener('scroll',()=>{if (viewport.scrollLeft>8) followLive=false;},{passive:true});
+  $('detail-watch').addEventListener('click',watchLive);$('guide-channel').addEventListener('click',watchLive);
+  document.addEventListener('keydown',async event=>{
+    if (event.ctrlKey || event.altKey || event.metaKey || event.target.closest('input,textarea,select,button,summary,[contenteditable=true]')) return;
+    if (event.key.toLowerCase()==='g') {event.preventDefault();await showGuide();viewport.focus();}
+    if (event.key.toLowerCase()==='l') {event.preventDefault();watchLive();}
   });
-  $('guide-search').addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(() => load(),250); });
-  $('programmes-only').addEventListener('change', () => load());
-  $('guide-refresh').addEventListener('click', () => load());
-  $('guide-more').addEventListener('click', () => load(true));
-  $('detail-close').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', e => { const rect = dialog.getBoundingClientRect(); if (e.target===dialog && (e.clientX<rect.left || e.clientX>rect.right || e.clientY<rect.top || e.clientY>rect.bottom)) dialog.close(); });
-  $('detail-watch').addEventListener('click', () => { dialog.close(); watchLive(); $('screen').scrollIntoView({block:'center'}); });
-  const scroller = createGuideScroller(viewport,{onChange:enabled => $('guide-auto').setAttribute('aria-pressed',String(enabled)),onEnd:() => { if (cursor!==null) load(true); else scroller.stop(); }});
-  $('guide-auto').addEventListener('click', () => scroller.toggle());
-  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const setMotion = () => { $('guide-auto').disabled = motion.matches; $('guide-auto').title = motion.matches ? 'Auto-scroll is off to respect your reduced motion preference' : 'Slowly scroll the programme guide; manual interaction pauses it'; };
-  motion.addEventListener('change',setMotion); setMotion();
-  document.addEventListener('keydown', event => {
-    if (event.ctrlKey || event.altKey || event.metaKey || event.target.closest('input,textarea,select,[contenteditable=true]') || dialog.open) return;
-    if (event.key.toLowerCase()==='g') { event.preventDefault(); $('programme-guide').scrollIntoView(); $('guide-search').focus({preventScroll:true}); }
-    if (event.key.toLowerCase()==='l') { event.preventDefault(); watchLive(); }
-  });
-  // Keep the default board near the live transmission without rebuilding rows
-  // while someone is reading, scrolling, using the keyboard or viewing details.
-  setInterval(() => {
-    if (period==='now' && !loading && viewport.scrollTop<4 && !viewport.contains(document.activeElement)
-        && !dialog.open && !document.hidden && $('guide-auto').getAttribute('aria-pressed')!=='true') load();
-  },60000);
+  setInterval(()=>{if (!document.hidden && time()!==null) {$('clock').textContent=timeText(time(),true);updateLive(time(),nextId);}},1000);
+  setInterval(()=>{if (followLive && !loading && !document.hidden && !viewport.contains(document.activeElement)) {range=null;load();}},60000);
   load();
-  return {updateLive, refresh:() => load()};
+  return {updateLive,refresh:()=>load(),updateNow:(event,name)=>{if (name) channel=name;updateLive(time(),nextId);}};
 }

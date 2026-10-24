@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dayKey, ukMidnight, periodWindow, timeText, durationText, eventState} from '../web/epg.js';
+import {dayKey, ukMidnight, periodWindow, timeText, durationText, eventState, guideScale, gridBox, windowAt} from '../web/epg.js';
 
 const stamp = iso => Date.parse(iso)/1000;
 
@@ -40,4 +40,27 @@ test('short transmissions retain distinct seconds and meaningful durations', () 
   assert.equal(durationText(8),'8 sec');
   assert.equal(durationText(90),'1 min 30s');
   assert.equal(durationText(5040),'1h 24m');
+});
+
+test('the guide scale keeps real films and the short demo readable without changing time',()=>{
+  assert.deepEqual(guideScale([{kind:'programme',start:0,end:5400}]),{span:7200,tick:1800});
+  assert.deepEqual(guideScale([{kind:'programme',start:0,end:180}]),{span:1200,tick:300});
+  assert.deepEqual(guideScale([{kind:'programme',start:0,end:20},{kind:'advert',start:20,end:28}]),{span:120,tick:30});
+});
+
+test('programme cells use elapsed time and clip at window edges',()=>{
+  assert.deepEqual(gridBox({start:80,end:160},100,220),{left:0,width:50,before:true,after:false});
+  const continued=gridBox({start:180,end:260},100,220);
+  assert.ok(Math.abs(continued.left-66.6666667)<.00001);
+  assert.ok(Math.abs(continued.width-33.3333333)<.00001);
+  assert.equal(continued.after,true);
+  assert.equal(gridBox({start:220,end:300},100,220),null);
+});
+
+test('a timeline window cannot overrun its selected British day',()=>{
+  const day=periodWindow('today',stamp('2026-10-25T12:00:00Z'));
+  const range=windowAt(day.end-60,{span:7200,tick:1800},day);
+  assert.equal(range.end,day.end);
+  assert.equal(range.start,day.end-1800);
+  assert.equal(day.end-day.start,25*3600);
 });

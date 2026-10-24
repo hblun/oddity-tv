@@ -28,6 +28,7 @@ if (typeof document!=='undefined') {
   function message(text,hold = 0) {
     if (hold) statusUntil = performance.now()+hold;
     if ($('status').textContent!==text) $('status').textContent = text;
+    $('status').classList.toggle('visible',hold>0 || /interrupted|reconnecting|Waiting|unavailable|could not|Connecting|needs a click/i.test(text));
   }
   function normalMessage(text) { if (performance.now()>=statusUntil) message(text); }
   function receiverState() {
@@ -36,6 +37,8 @@ if (typeof document!=='undefined') {
     $('transport-label').textContent = session.running ? 'Pause' : 'Play live';
     $('transport').setAttribute('aria-label',session.running ? 'Pause on this screen; the channel continues' : 'Play at the current live broadcast position');
     $('paused-overlay').hidden = !session.paused;
+    $('tv-set').classList.toggle('is-paused',session.paused);
+    $('tv-set').classList.toggle('is-idle',!session.active);
     $('live').classList.toggle('is-paused',session.paused);
   }
   function blocked(error) {
@@ -99,6 +102,8 @@ if (typeof document!=='undefined') {
     $('tv-set').classList.toggle('crt-on',preferences.crt); document.body.classList.toggle('theatre-mode',preferences.theatre);
     $('picture').value=preferences.picture; $('caption-size').value=preferences.captionSize; $('crt').checked=preferences.crt;
     $('theatre').setAttribute('aria-pressed',String(preferences.theatre));
+    $('theatre').textContent=preferences.theatre ? 'Guide' : 'Theatre';
+    $('theatre').setAttribute('aria-label',preferences.theatre ? 'Show TV guide' : 'Theatre mode');
   }
   async function fullScreen() {
     try {
@@ -116,16 +121,7 @@ if (typeof document!=='undefined') {
     } catch { message('Picture-in-picture is unavailable for this transmission.',4000); }
   }
   function render(event) {
-    $('now-title').textContent=event?.title || 'Between transmissions';
-    $('now-detail').textContent=event ? `${event.block}${event.source_in>0 ? ' · Programme resumes' : ''}` : 'The programme guide will return shortly.';
-    $('now-kind').textContent=event?.kind.replaceAll('-',' ') || 'Continuity';
-    $('now-range').textContent=event ? `${timeText(event.start,true)}–${timeText(event.end,true)}` : 'Stand by';
-    if (guide) $('channel-name').textContent=guide.channel;
-    const next=[guide?.now,...(guide?.upcoming || [])].find(e=>e && e.start>clock.now());
-    $('next-title').textContent=next?.title || 'More from the Oddity service';
-    $('next-time').textContent=next ? timeText(next.start,next.end-next.start<60 || next.start%60!==0) : '--:--';
-    if (next) $('next-time').dateTime=new Date(next.start*1000).toISOString(); else $('next-time').removeAttribute('datetime');
-    $('next-detail').textContent=next ? `${next.kind.replaceAll('-',' ')} · ${durationText(next.end-next.start)}${next.source_in>0 ? ' · Resumes' : ''}` : 'The guide is refreshing.';
+    epg?.updateNow(event,guide?.channel);
     if (!loadedEvent) captionControls();
   }
   function loadTransmission(event) {
@@ -149,10 +145,6 @@ if (typeof document!=='undefined') {
     current=event;
     if (changed) render(event);
     if (session.shouldLoad(event)) loadTransmission(event);
-    if (event) {
-      $('progress').value=Math.max(0,Math.min(1,(now-event.start)/(event.end-event.start)));
-      $('remaining').textContent=`${durationText(Math.max(0,event.end-now))} remaining`;
-    }
     if (session.paused) { normalMessage('Paused on your screen. Play rejoins the current live transmission.'); return; }
     if (!session.active) return;
     if (!event) { changingSource=true; video.pause(); normalMessage('Waiting for the programme guide. Reconnecting to the station…'); return; }
@@ -226,6 +218,9 @@ if (typeof document!=='undefined') {
     if (key==='t') {event.preventDefault(); $('theatre').click();}
   });
   updateSound(); pictureSettings(); receiverState(); captionControls();
-  epg=createProgrammeGuide({now:()=>clock.now(),watchLive});
+  epg=createProgrammeGuide({now:()=>clock.now(),watchLive,showGuide:async()=>{
+    if (document.fullscreenElement) await document.exitFullscreen();
+    preferences.theatre=false;pictureSettings();savePreferences();
+  }});
   setInterval(tick,250); setInterval(refresh,10000); refresh();
 }

@@ -22,12 +22,12 @@ async def run(url):
             await page.add_init_script("window.transitions=[];document.addEventListener('loadstart',e=>{if(e.target.tagName==='VIDEO')window.transitions.push(e.target.currentSrc||e.target.src)},true)")
         try:
             await pages[0].goto(url)
-            await pages[0].wait_for_function("!document.getElementById('now-title').textContent.includes('Finding')")
+            await pages[0].wait_for_function("!document.getElementById('detail-title').textContent.includes('Loading guide')")
             await pages[0].locator("#tune").click()
             await pages[0].wait_for_function("document.querySelector('video').readyState>=2 && !document.querySelector('video').paused")
             await asyncio.sleep(2)
             await pages[1].goto(url)
-            await pages[1].wait_for_function("!document.getElementById('now-title').textContent.includes('Finding')")
+            await pages[1].wait_for_function("!document.getElementById('detail-title').textContent.includes('Loading guide')")
             await pages[1].locator("#tune").click()
             await pages[1].wait_for_function("document.querySelector('video').readyState>=2 && !document.querySelector('video').paused")
             checks = 0

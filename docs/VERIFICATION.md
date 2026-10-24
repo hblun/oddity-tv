@@ -1,5 +1,13 @@
 # Verification record — 24 October 2026
 
+## Stream-and-guide wrapper update
+
+The page now has exactly two main surfaces: live video and a Freeview-style horizontal programme guide. The masthead, promotional headings, separate now/next cards, decorative receiver strip and footer are removed. The guide has a fixed channel rail, proportional cells, shared time ruler, current-time playhead and inline selected-programme information. Today/Tomorrow, earlier/later windows and Now replace the previous board's search/filter/paging/auto-scroll controls. The public guide API retains its query and pagination features.
+
+The sample clips use a two-minute timescale, short programmes 20 minutes and normal films two hours. Unit checks verify scale selection, clipped cells, proportional positioning and day-window boundaries. Existing caption, pause, scheduling and delivery checks continue to pass: **21 Python tests and 18 JavaScript tests**. HTML nesting, exactly two top-level sections, all JavaScript element references, syntax, compilation, Compose and whitespace checks pass.
+
+`scripts/epg_acceptance.py` now checks the simplified wrapper, timeline selection/arrow keys, day/window navigation, live playhead, playback while browsing, fixed mobile rail and network failure. The other browser scripts target the new markup. These browser checks remain **unexecuted** because of workspace socket restrictions; no rendered visual match or screenshot is claimed. The design uses familiar Freeview guide conventions rather than a captured, pixel-matched Freeview device screen.
+
 ## Television controls and subtitles update
 
 The receiver now includes local play/pause, volume, native WebVTT subtitles and track/size selection, programme OSD, theatre/full-screen/PiP controls, picture framing and an optional static CRT texture. Pause freezes the local picture without changing the station schedule; play explicitly returns to live. Text subtitles are prepared once from embedded streams, operator sidecars or private Jellyfin external-subtitle endpoints. Bitmap OCR and DVR playback are not implemented.
