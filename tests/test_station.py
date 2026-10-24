@@ -108,7 +108,7 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_public_surface_has_no_secrets_and_no_path_or_proxy_access(self):
         with patch.dict("os.environ", {"JELLYFIN_API_KEY": "PRIVATE_TEST_TOKEN", "JELLYFIN_URL": "http://private-jellyfin:8096"}):
-            for url in ["/", "/player.js", "/channel-two-playback.js", "/style.css", "/api/channel", "/guide.xml"]:
+            for url in ["/", "/player.js", "/epg.js", "/channel-two-playback.js", "/style.css", "/api/channel", "/api/guide", "/guide.xml"]:
                 response = await self.client.get(url)
                 self.assertEqual(response.status_code, 200)
                 for private in ["PRIVATE_TEST_TOKEN", "private-jellyfin", str(self.station.root), "provenance", "X-Emby-Token"]:
@@ -130,6 +130,50 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(xml.tag, "tv")
         self.assertTrue(xml.findall("programme"))
         self.assertEqual((await self.client.get("/api/channel?hours=999")).status_code, 422)
+
+    async def test_epg_pagination_has_no_missing_or_repeated_transmissions(self):
+        now = self.station.origin + 65
+        params = {"start": now, "end": now+120, "limit": 3}
+        found = []
+        with patch("station.app.time.time", return_value=now):
+            while True:
+                response = await self.client.get('/api/guide', params=params)
+                self.assertEqual(response.status_code, 200)
+                data = response.json()
+                self.assertLessEqual(len(data['events']), 3)
+                self.assertEqual(response.headers['cache-control'],'no-store')
+                found.extend(data['events'])
+                if data['next_cursor'] is None:
+                    break
+                params['after'] = data['next_cursor']
+        expected = [self.station.public(e) for e in self.station.timeline(now,now+120)]
+        self.assertEqual(found, expected)
+        self.assertEqual(len({e['id'] for e in found}),len(found))
+
+    async def test_epg_search_and_programme_filter_apply_before_pagination(self):
+        now = self.station.origin + 65
+        with patch('station.app.time.time',return_value=now):
+            result = await self.client.get('/api/guide', params={'q':'night shift','programmes_only':True,'limit':5})
+            data = result.json()
+            self.assertEqual(len(data['events']),5)
+            self.assertTrue(all('night shift' in e['title'].lower() and e['kind']=='programme' for e in data['events']))
+            self.assertIsNotNone(data['next_cursor'])
+            empty = (await self.client.get('/api/guide',params={'q':'no such programme'})).json()
+            self.assertEqual(empty['events'],[])
+            self.assertIsNone(empty['next_cursor'])
+
+    async def test_epg_bounds_payload_and_invalid_windows(self):
+        now = self.station.origin + 65
+        with patch('station.app.time.time',return_value=now):
+            result = await self.client.get('/api/guide')
+            self.assertEqual(len(result.json()['events']),60)
+            self.assertLess(len(result.content),35000)
+            for params in [{'limit':101},{'start':'nan'},{'start':now,'end':now-1},
+                           {'start':now,'end':now+37*3600},{'start':now,'after':now-1},
+                           {'q':'x'*101}]:
+                self.assertEqual((await self.client.get('/api/guide',params=params)).status_code,422,params)
+            # A DST autumn day is valid even though it lasts 25 hours.
+            self.assertEqual((await self.client.get('/api/guide',params={'start':now,'end':now+25*3600})).status_code,200)
 
 
 class JellyfinTests(unittest.TestCase):

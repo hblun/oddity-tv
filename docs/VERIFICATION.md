@@ -1,11 +1,19 @@
 # Verification record — 24 October 2026
 
+## EPG update
+
+The viewer now has a full-width programme board, separate now/next cards, British-date browsing, search, programme-only filtering, per-transmission details and optional Prevue-style scrolling. Ringmast4r-TV's MIT-licensed guide informed the presentation; the scrolling timer is adapted and credited in `THIRD_PARTY_NOTICES.md`.
+
+Updated checks: **16 Python tests and 11 JavaScript tests pass**. The additions verify stable paginated guide pages without duplicate/missing events, server-side search/filtering, small payloads, window/cursor validation, precise short-clip timings, British date boundaries and both DST transitions. All public routes, including the new guide endpoint/module, retain private-data checks. JavaScript syntax, Python compilation, Compose configuration, HTML element references and whitespace checks also pass.
+
+The new `scripts/epg_acceptance.py` checks desktop/mobile navigation, programme dialogs/Escape, playback while browsing, pagination, search, filtering, auto-scroll, network failure, reduced motion and overflow. It captures desktop/mobile screenshots when run successfully against the demo. **It has not been executed here**, because socket restrictions still block a local HTTP server and browser startup. No screenshot or visual-browser pass is claimed. The CSS has been reviewed as source, not rendered in this workspace.
+
 ## Completed in this workspace
 
 - Original synthetic sample MP4s generated with FFmpeg 7.1.5: seven files, about 1.5 MB total.
 - `python -m station.cli validate`: passes prepared media codec/duration checks and 24-hour scheduling validation, including 7,200 upcoming demo entries.
-- `python -m unittest discover -s tests -v`: **13 tests pass**.
-- JavaScript clock and Channel Two transport tests: **6 tests pass**, run directly with Node 24.19.0. The Node test runner also passes both test files.
+- `python -m unittest discover -s tests -v`: **16 tests pass** after the EPG update.
+- JavaScript clock, guide and Channel Two transport tests: **11 tests pass**, run directly with Node 24.19.0.
 - Python source compilation and JavaScript syntax checks pass.
 - `docker compose config --quiet` passes; Compose YAML and JSON configuration parse successfully.
 - Vendored upstream files match the Git blob hashes recorded in `THIRD_PARTY_NOTICES.md` exactly.

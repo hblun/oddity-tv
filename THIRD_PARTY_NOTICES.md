@@ -1,5 +1,13 @@
 # Reused code and provenance
 
+## Ringmast4r-TV — ringmast4r
+
+Source: https://github.com/Ringmast4r/Ringmast4r-TV, commit `145a2eb91a446cd4ed791c0f150dc25cf67326fe`.
+
+The guide's split-screen presentation and now/next hierarchy draw on this project's Prevue-style guide. `web/epg.js` adapts the opt-in scrolling timer from `startGuideAuto`, `stopGuideAuto` and wheel-pause handling in upstream `player/index.html` (blob `7ebe5b57284902e468fca98539f6257897898dd4`). It uses native scrolling, pauses for keyboard/focus/touch and hidden pages, and honours reduced-motion preferences. It does not reuse the upstream XMLTV regex parser, live transcoder or external script dependencies. The rest of the guide UI and paginated JSON integration is new.
+
+MIT License. Copyright (c) 2026 ringmast4r. Full notice: `vendor/ringmast4r/LICENSE` (also included in the Docker image).
+
 The project operator confirmed on 24 October 2026: “We have a permissive licence for channel 2 and jellyfin TV to reuse and build on their code.” The adaptations below rely on that grant. No standard licence identifier or wording has been invented. Keep the operator's licence documents with the source/deployment and follow their actual terms.
 
 ## Channel Two — cfinke

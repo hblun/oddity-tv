@@ -28,3 +28,7 @@ Choosing this path trades an existing scheduling UI and IPTV compatibility for a
 4. **Viewer:** same-origin native HTML video and server-clock control. The guide is JSON plus XMLTV from the same timeline.
 
 No multi-service control plane is required. Media can be copied to a public cache host independently of the scheduling process.
+
+## EPG presentation
+
+The EPG update adapts Ringmast4r-TV's Prevue guide-channel idea and opt-in scrolling timer. Its source and full MIT notice are recorded in `THIRD_PARTY_NOTICES.md` and `vendor/ringmast4r/LICENSE`. This does not add ErsatzTV, HLS.js, a live transcoder or remote assets to the station. A single-channel programme board is easier to read than duration-scaled grid cells for the demo's eight-second adverts. Now/next cards keep the current transmission visible; paginated day listings provide the wider schedule, with server-side title/block search and programme filtering. Calendar windows use British civil dates rather than assuming every day lasts 24 hours.

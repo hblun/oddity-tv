@@ -100,6 +100,18 @@ The server loads a snapshot at startup; there are no public write/admin endpoint
 
 ## Delivery and synchronisation
 
+### The programme guide
+
+The viewer now has a full-width Prevue-inspired programme board, drawing on the MIT-licensed [Ringmast4r-TV](https://github.com/Ringmast4r/Ringmast4r-TV) guide. The live picture stays on while you browse. Now/next cards show timings, remaining duration and programme resumes after breaks.
+
+Browse **From now**, **Today** or **Tomorrow**, search titles/programming blocks, or show programmes only. Short adverts and idents retain seconds in their timings. Click a listing for its broadcast time, duration and block; “Watch the live channel” always joins the current transmission. Listings are paginated, so the short demo's thousands of daily entries are not all downloaded at once. Search and filtering cover the selected period, including entries beyond the loaded page.
+
+British dates follow `Europe/London`, including 23- and 25-hour clock-change days. Now/next and on-air markers update from the shared clock. The default “From now” board refreshes once a minute when you are at its top and not interacting; Refresh updates other views manually. Loading a further page appends rows without replacing the ones you are reading.
+
+Optional **Auto-scroll** borrows Ringmast4r's guide-channel idea; it is off initially, pauses during manual navigation, focus, details and hidden tabs, and is disabled when reduced motion is requested. Native buttons and a modal dialog support keyboard use. **G** focuses guide search, **L** rejoins live, and **Escape** closes programme details. All scripts and fonts remain local.
+
+`GET /api/guide` returns up to 60 entries per page (maximum 100), plus `next_cursor`. Pass the returned `start`/`end` back with `after=next_cursor` for a stable next page. Optional `q` searches titles/blocks and `programmes_only=true` filters before pagination. Date windows may span up to 36 hours near today, covering full British DST days. This endpoint shares the existing schedule and exposes only public event fields.
+
 `GET /api/channel?hours=6` gives now and upcoming entries (maximum 24 hours). `GET /guide.xml` supplies the next 24 hours as XMLTV. `python -m station.cli export guide.json` exports advance JSON. The same schedule drives all outputs. There is **no IPTV stream or M3U/HLS endpoint yet**; this release takes the permitted browser-player route.
 
 The browser estimates server time from the response and half of the round-trip time, then advances a monotonic clock. It seeks to `source_in + (server time − event start)`, changes clips at boundaries and corrects drift above 1.25 seconds. Smaller differences receive a gentle playback-rate correction. Target: roughly 1–2 seconds between viewers on a stable connection, not frame-accurate broadcast synchronisation. Buffering, long keyframe intervals in copied sources and slow networks can increase the difference. Encoding once inserts two-second keyframes for practical seeking.
@@ -145,6 +157,7 @@ For the actual browser acceptance test, install Playwright in a development envi
 pip install playwright
 python -m playwright install chromium
 python scripts/browser_acceptance.py --url http://127.0.0.1:8000
+python scripts/epg_acceptance.py --url http://127.0.0.1:8000
 ```
 
 That test tunes in two independent browser contexts at different times, checks rendered video position, waits across at least two automatic programme changes and checks for private requests. It takes up to 65 seconds against the supplied demo. It is intended for this short demo schedule, before substituting feature-length media.

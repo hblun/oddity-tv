@@ -1,5 +1,6 @@
 // Clock-based MP4 playback; native transport adapted from Channel Two.
 import {playScheduledFile} from './channel-two-playback.js';
+import {createProgrammeGuide, durationText, timeText} from './epg.js';
 export class BroadcastClock {
   constructor() { this.anchor = null; this.mono = 0; }
   update(serverTime, requestStart, responseEnd) {
@@ -23,7 +24,7 @@ export function position(event, time) {
 if (typeof document !== 'undefined') {
   const $ = id => document.getElementById(id);
   const video = $('video'), clock = new BroadcastClock();
-  const ukTime = new Intl.DateTimeFormat('en-GB', {timeZone:'Europe/London',hour:'2-digit',minute:'2-digit'});
+  let epg = null;
   let guide = null, current = null, active = false, fetching = false, lastSuccess = 0, lastRetry = 0;
   video.muted = true;
 
@@ -43,24 +44,23 @@ if (typeof document !== 'undefined') {
   }
   function render(event) {
     $('now-title').textContent = event ? event.title : 'Between transmissions';
-    $('now-detail').textContent = event ? `${ukTime.format(event.start * 1000)}–${ukTime.format(event.end * 1000)} · ${event.block}` : 'The programme guide will return shortly.';
-    const list = $('guide');
-    list.replaceChildren();
-    const now = clock.now();
-    for (const item of [guide?.now, ...(guide?.upcoming || [])].filter(e => e && e.start > now).slice(0, 9)) {
-      const li = document.createElement('li'), time = document.createElement('time'), body = document.createElement('div');
-      time.dateTime = new Date(item.start * 1000).toISOString();
-      time.textContent = ukTime.format(item.start * 1000);
-      const title = document.createElement('span'), kind = document.createElement('span');
-      title.className = 'guide-title'; title.textContent = item.title;
-      kind.className = 'guide-kind'; kind.textContent = item.kind.replaceAll('-', ' ');
-      body.append(title, kind); li.append(time, body); list.append(li);
-    }
+    $('now-detail').textContent = event ? `${event.block}${event.source_in > 0 ? ' · Programme resumes' : ''}` : 'The programme guide will return shortly.';
+    $('now-kind').textContent = event?.kind.replaceAll('-',' ') || 'Continuity';
+    $('now-range').textContent = event ? `${timeText(event.start,true)}–${timeText(event.end,true)}` : 'Stand by';
+    if (guide) $('channel-name').textContent = guide.channel;
+    const next = [guide?.now, ...(guide?.upcoming || [])].find(e => e && e.start > clock.now());
+    $('next-title').textContent = next?.title || 'More from the Oddity service';
+    $('next-time').textContent = next ? timeText(next.start,next.end-next.start<60 || next.start%60!==0) : '--:--';
+    if (next) $('next-time').dateTime = new Date(next.start*1000).toISOString();
+    else $('next-time').removeAttribute('datetime');
+    $('next-detail').textContent = next ? `${next.kind.replaceAll('-',' ')} · ${durationText(next.end-next.start)}${next.source_in>0 ? ' · Resumes' : ''}` : 'The guide is refreshing.';
   }
   function tick() {
     const now = clock.now();
     if (now === null) return;
-    $('clock').textContent = `${ukTime.format(now * 1000)} · LONDON`;
+    $('clock').textContent = timeText(now,true);
+    const next = [guide?.now,...(guide?.upcoming || [])].find(e => e && e.start>now);
+    epg?.updateLive(now,next?.id);
     const event = eventAt(guide, now);
     if (event?.id !== current?.id) {
       current = event;
@@ -75,6 +75,7 @@ if (typeof document !== 'undefined') {
     }
     if (!event) return;
     $('progress').value = Math.max(0, Math.min(1, (now - event.start) / (event.end - event.start)));
+    $('remaining').textContent = `${durationText(Math.max(0,event.end-now))} remaining`;
     if (!active) return;
     if (video.error) {
       message('Transmission interrupted. Retrying at the live position…');
@@ -105,19 +106,20 @@ if (typeof document !== 'undefined') {
       message('Programme guide connection lost. The cached broadcast continues; reconnecting…');
     } finally { fetching = false; }
   }
-  $('tune').addEventListener('click', () => {
+  function watchLive() {
     active = true;
     current = null;
     $('standby').hidden = true;
     tick();
     if (!guide) { message('Connecting to the transmission…'); refresh(); }
-  });
+  }
+  $('tune').addEventListener('click',watchLive);
   $('sound').addEventListener('click', () => {
     video.muted = !video.muted;
     $('sound').textContent = video.muted ? 'Sound off' : 'Sound on';
     $('sound').setAttribute('aria-label', video.muted ? 'Turn sound on' : 'Turn sound off');
   });
-  $('live').addEventListener('click', () => { seekLive(); refresh(); if (active) play(); });
+  $('live').addEventListener('click', () => { if (!active) watchLive(); else {seekLive(); refresh(); play();} });
   $('fullscreen').addEventListener('click', async () => {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
@@ -129,6 +131,7 @@ if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
   window.addEventListener('online', refresh);
   video.addEventListener('ended', () => { tick(); });
+  epg = createProgrammeGuide({now:() => clock.now(),watchLive});
   setInterval(tick, 250);
   setInterval(refresh, 10000);
   refresh();

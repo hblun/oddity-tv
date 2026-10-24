@@ -1,5 +1,6 @@
 """Public, read-only delivery. Jellyfin is never contacted by this process."""
 import json
+import math
 import os
 from pathlib import Path
 import time
@@ -51,6 +52,38 @@ def create_app(schedule=None):
     def channel(hours: float = Query(default=6, ge=0.01, le=24)):
         return app.state.schedule.guide(time.time(), hours)
 
+    @app.get("/api/guide")
+    def programme_guide(start: float | None = None, end: float | None = None,
+                        after: float | None = None, limit: int = Query(default=60, ge=1, le=100),
+                        q: str = Query(default="", max_length=100), programmes_only: bool = False):
+        now = time.time()
+        start = now if start is None else start
+        end = start + 86400 if end is None else end
+        if (not all(math.isfinite(t) for t in [start, end] + ([] if after is None else [after]))
+                or start < now - 2 * 86400 or end > now + 3 * 86400
+                or end <= start or end - start > 36 * 3600
+                or (after is not None and not start <= after <= end)):
+            raise HTTPException(422, "Choose a guide window of up to 36 hours near today")
+        station = app.state.schedule
+        events = station.timeline(start if after is None else after, end)
+        query = q.strip().casefold()
+        matches = []
+        for event in events:
+            if after is not None and event.start < after - .0001:
+                continue
+            asset = station.assets[event.asset]
+            if programmes_only and asset.get("kind", "programme") != "programme":
+                continue
+            if query and query not in (asset["title"] + " " + event.block).casefold():
+                continue
+            matches.append(event)
+            if len(matches) > limit:
+                break
+        page = matches[:limit]
+        return {"channel": station.channel, "timezone": str(station.zone), "server_time": now,
+                "start": start, "end": end, "events": [station.public(e) for e in page],
+                "next_cursor": page[-1].end if len(matches) > limit else None}
+
     @app.api_route("/media/{asset_id}.mp4", methods=["GET", "HEAD"])
     def media(asset_id: str):
         station = app.state.schedule
@@ -78,7 +111,7 @@ def create_app(schedule=None):
             SubElement(p, "category").text = station.assets[event.asset].get("kind", "programme")
         return Response(tostring(tv, encoding="utf-8", xml_declaration=True), media_type="application/xml")
 
-    for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css")]:
+    for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/epg.js", "epg.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css")]:
         def make_static(name, mime):
             def static_file():
                 return FileResponse(BASE / "web" / name, media_type=mime)
