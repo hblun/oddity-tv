@@ -39,3 +39,18 @@ export function mountCaptions(video, captions, onError) {
     return {element,caption};
   });
 }
+
+// Preload one imminent transmission; never speculate far ahead or on data saver.
+export function preloadCandidate(guide, current, now, connection = {}) {
+  if (!current || !Number.isFinite(now) || connection.saveData || ['slow-2g','2g'].includes(connection.effectiveType)) return null;
+  if (current.end-now>10 || current.end<=now) return null;
+  return guide?.upcoming?.find(event=>event.id!==current.id && Math.abs(event.start-current.end)<.1) || null;
+}
+
+export function programmeProgress(event, now) {
+  if (!event || event.end<=event.start || !Number.isFinite(now)) return 0;
+  const elapsed=Math.max(0,Math.min(now-event.start,event.end-event.start));
+  const duration=Number.isFinite(event.source_duration) && event.source_duration>0 ? event.source_duration : event.end-event.start;
+  const offset=Number.isFinite(event.source_duration) ? (event.source_in || 0) : 0;
+  return Math.max(0,Math.min(1,(offset+elapsed)/duration));
+}

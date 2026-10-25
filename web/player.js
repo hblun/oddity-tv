@@ -1,7 +1,7 @@
 // Shared-clock television, with local viewing controls and cached WebVTT tracks.
 import {playScheduledFile} from './channel-two-playback.js';
-import {createProgrammeGuide, durationText, timeText} from './epg.js';
-import {ViewingSession, chooseCaption, mountCaptions, readPreferences, safePreferences} from './tv-controls.js';
+import {createProgrammeGuide, timeText} from './epg.js';
+import {ViewingSession, chooseCaption, mountCaptions, readPreferences, safePreferences, preloadCandidate, programmeProgress} from './tv-controls.js';
 export class BroadcastClock {
   constructor() { this.anchor = null; this.mono = 0; }
   update(serverTime, requestStart, responseEnd) { this.anchor = serverTime + (responseEnd-requestStart)/2000; this.mono = responseEnd; }
@@ -17,7 +17,9 @@ export function position(event,time) {
 
 if (typeof document!=='undefined') {
   const $ = id=>document.getElementById(id);
-  const video = $('video'), clock = new BroadcastClock(), session = new ViewingSession();
+  let video = $('video'), buffer = $('preload-video');
+  const clock = new BroadcastClock(), session = new ViewingSession();
+  let prepared=null;
   let preferences = safePreferences(null);
   try { preferences = readPreferences(window.localStorage); } catch {}
   let epg = null, guide = null, current = null, loadedEvent = null, fetching = false, changingSource = false;
@@ -63,6 +65,24 @@ if (typeof document!=='undefined') {
   $('guide-toggle').addEventListener('click',()=>setGuide($('programme-guide').hidden));
   $('skip-guide').addEventListener('click',()=>setGuide(true));
   $('guide-close').addEventListener('click',()=>setGuide(false));
+  let dragStart=null;
+  $('sheet-handle').addEventListener('pointerdown',event=>{
+    dragStart={x:event.clientX,y:event.clientY,id:event.pointerId};
+    $('sheet-handle').setPointerCapture(event.pointerId);
+  });
+  $('sheet-handle').addEventListener('pointermove',event=>{
+    if (!dragStart || event.pointerId!==dragStart.id) return;
+    $('programme-guide').classList.add('is-dragging');
+    $('programme-guide').style.transform=`translateY(${Math.min(160,Math.max(0,event.clientY-dragStart.y))}px)`;
+  });
+  function resetSheet() {
+    dragStart=null;$('programme-guide').classList.remove('is-dragging');$('programme-guide').style.transform='';
+  }
+  $('sheet-handle').addEventListener('pointerup',event=>{
+    if (dragStart && event.pointerId===dragStart.id && event.clientY-dragStart.y>55 && Math.abs(event.clientX-dragStart.x)<90) setGuide(false);
+    resetSheet();
+  });
+  $('sheet-handle').addEventListener('pointercancel',resetSheet);
   $('guide-backdrop').addEventListener('click',()=>setGuide(false));
   $('settings-toggle').addEventListener('click',()=>setSettings($('receiver-settings').hidden));
   $('settings-close').addEventListener('click',()=>setSettings(false));
@@ -172,16 +192,43 @@ if (typeof document!=='undefined') {
     $('viewing-title').textContent=(session.paused ? loadedEvent : event)?.title || 'Oddity Television';
     if (!loadedEvent) captionControls();
   }
+  function clearPrepared() {
+    prepared=null;delete buffer.dataset.preparedId;buffer.onloadedmetadata=null;buffer.pause();buffer.removeAttribute('src');buffer.replaceChildren();buffer.load();
+  }
+  function prepareNext(event) {
+    if (prepared?.id===event?.id) return;
+    if (prepared) clearPrepared();
+    if (!event) return;
+    prepared=event;buffer.dataset.preparedId=event.id;buffer.muted=true;buffer.volume=0;
+    playScheduledFile(buffer,event.url,()=>event.source_in,()=>{}, {shouldPlay:()=>false});
+  }
   function loadTransmission(event) {
-    loadedEvent=event; $('viewing-title').textContent=event.title; session.loaded(event); changingSource=true; selectedCaptionId=null;
-    playScheduledFile(video,event.url,()=>position(loadedEvent,session.paused && pausedAt!==null ? pausedAt : clock.now()),blocked,{
-      shouldPlay:()=>session.running,
-      onSource:()=>{
-        mounted=mountCaptions(video,event.captions || [],()=>message('This subtitle track could not be loaded. Try another track or switch subtitles off.',5000));
-        for (const track of mounted) track.element.addEventListener('load',applyCaptions);
-        applyCaptions();
-      },onReady:()=>{ applyCaptions(); }
-    });
+    changingSource=true;
+    const ready=prepared?.id===event.id && buffer.readyState>=2 && !buffer.error
+      && !document.pictureInPictureElement && !video.webkitDisplayingFullscreen
+      && !(navigator.vendor?.includes('Apple') && !video.muted);
+    if (ready) {
+      video.pause();
+      const previous=video;video=buffer;buffer=previous;
+      buffer.id='preload-video';buffer.hidden=true;buffer.setAttribute('aria-hidden','true');
+      video.id='video';video.hidden=false;video.removeAttribute('aria-hidden');
+      video.setAttribute('aria-label','Live Oddity Television broadcast');
+      video.muted=preferences.muted;video.volume=preferences.volume;
+    }
+    loadedEvent=event;video.dataset.broadcastId=event.id; $('viewing-title').textContent=event.title; session.loaded(event); selectedCaptionId=null;
+    const attachCaptions=()=>{
+      mounted=mountCaptions(video,event.captions || [],()=>message('Subtitles could not load',4000));
+      for (const track of mounted) track.element.addEventListener('load',applyCaptions);
+      applyCaptions();
+    };
+    if (ready) {
+      video.replaceChildren();attachCaptions();seekLive();play();clearPrepared();
+    } else {
+      if (prepared) clearPrepared();
+      playScheduledFile(video,event.url,()=>position(loadedEvent,session.paused && pausedAt!==null ? pausedAt : clock.now()),blocked,{
+        shouldPlay:()=>session.running,onSource:attachCaptions,onReady:applyCaptions
+      });
+    }
     $('standby').hidden=true;
   }
   function tick() {
@@ -193,6 +240,16 @@ if (typeof document!=='undefined') {
     current=event;
     if (changed) render(event);
     if (session.shouldLoad(event)) loadTransmission(event);
+    const shown=session.paused ? loadedEvent : event;
+    $('programme-progress').value=programmeProgress(shown,session.paused ? pausedAt : now);
+    const upcoming=[guide?.now,...(guide?.upcoming || [])].find(e=>e && e.start>=(shown?.end ?? now));
+    $('viewing-block').textContent=shown?.programming?.title || '';
+    $('viewing-block').hidden=!shown?.programming;
+    $('viewing-next').hidden=!upcoming;
+    $('next-title').textContent=upcoming?.title || '';
+    $('next-time').textContent=upcoming ? timeText(upcoming.start) : '';
+    if (session.running) prepareNext(preloadCandidate(guide,event,now,navigator.connection));
+    else if (prepared) clearPrepared();
     if (session.paused) { normalMessage('Paused'); return; }
     if (!session.active) return;
     if (!event) { changingSource=true; video.pause(); normalMessage('Connecting…'); return; }
@@ -229,7 +286,7 @@ if (typeof document!=='undefined') {
   function togglePlayback() { if (session.running) pause(); else watchLive(); }
   $('tune').addEventListener('click',watchLive); $('resume-live').addEventListener('click',watchLive);
   $('transport').addEventListener('click',togglePlayback); $('live').addEventListener('click',watchLive);
-  $('sound').addEventListener('click',toggleSound); video.addEventListener('volumechange',updateSound);
+  $('sound').addEventListener('click',toggleSound);
   $('volume').addEventListener('input',()=>{video.volume=Number($('volume').value)/100; video.muted=video.volume===0; updateSound();});
   $('captions').addEventListener('click',toggleCaptions);
   $('subtitle-track').addEventListener('change',()=>{
@@ -243,16 +300,24 @@ if (typeof document!=='undefined') {
   $('info').addEventListener('click',()=>showInfo(true)); $('fullscreen').addEventListener('click',fullScreen);
   $('pip').hidden=!(document.pictureInPictureEnabled && video.requestPictureInPicture);
   $('pip').addEventListener('click',pictureInPicture);
-  video.addEventListener('enterpictureinpicture',()=>$('pip').setAttribute('aria-pressed','true'));
-  video.addEventListener('leavepictureinpicture',()=>$('pip').setAttribute('aria-pressed','false'));
   document.addEventListener('fullscreenchange',()=>{
     const full=!!document.fullscreenElement; icon($('fullscreen'),full ? 'exit' : 'fullscreen');
     $('fullscreen').setAttribute('aria-label',full ? 'Exit full screen' : 'Enter full screen');
   });
-  video.addEventListener('pause',()=>{if (!changingSource && video.paused && !video.ended && session.running) pause();});
-  video.addEventListener('play',()=>{if (session.paused && !video.paused) watchLive();});
-  video.addEventListener('playing',()=>{if (session.paused) {video.pause(); return;} changingSource=false; $('standby').hidden=true; receiverState();});
-  video.addEventListener('ended',tick);
+  function bindVideo(element) {
+    element.addEventListener('volumechange',()=>{if (element===video) updateSound();});
+    element.addEventListener('enterpictureinpicture',()=>$('pip').setAttribute('aria-pressed','true'));
+    element.addEventListener('leavepictureinpicture',()=>$('pip').setAttribute('aria-pressed','false'));
+    element.addEventListener('pause',()=>{if (element===video && !changingSource && video.paused && !video.ended && session.running) pause();});
+    element.addEventListener('play',()=>{if (element===video && session.paused && !video.paused) watchLive();});
+    element.addEventListener('playing',()=>{
+      if (element!==video) return;
+      if (session.paused) {video.pause();return;}
+      changingSource=false;$('standby').hidden=true;receiverState();
+    });
+    element.addEventListener('ended',()=>{if (element===video) tick();});
+  }
+  bindVideo(video);bindVideo(buffer);
   document.addEventListener('visibilitychange',()=>{if (!document.hidden) refresh();}); window.addEventListener('online',refresh);
   document.addEventListener('keydown',event=>{
     if (event.ctrlKey || event.metaKey || event.altKey || event.target.closest('input,textarea,select,button,a,summary,#programme-guide,[contenteditable=true]') || document.querySelector('dialog[open]')) return;

@@ -122,11 +122,15 @@ The server loads a snapshot at startup; there are no public write/admin endpoint
 
 ## Delivery and synchronisation
 
+### Programming identities and descriptions
+
+Give recurring slots a reusable identity such as **Saturday Morning Cartoons** or **Past Watershed Strangeness**. Named block profiles carry a title, introduction and tags through programmes, adverts and resumptions. Viewers see the block label with now/next and its introduction in the guide. Programme descriptions and episode/year details come from cached Jellyfin metadata, with private refresh and admin overrides; local/archive assets support the same editorial fields. See [the programming guide](docs/PROGRAMMING.md) for configuration, import, refresh and override commands.
+
 ### The programme guide
 
 The stream fills the screen. **Guide** opens a floating programme card without stopping playback; close it with ×, Escape or a tap outside. **G** opens the guide from the picture. The guide has a fixed channel column, horizontal time ruler, duration-proportional programme cells and selected-programme details. There is no site masthead or footer.
 
-Red selections and locally bundled VT323 accents retain the red-button character. Programme titles, settings and controls use clear sans-serif type. The compact icon controls fade away after inactivity and return on pointer movement, a picture tap or keyboard focus. The settings popover holds picture framing, subtitle tracks/sizes, CRT texture, programme information and picture-in-picture. All animations respect reduced-motion preferences. No external fonts are requested; VT323's SIL Open Font License is included.
+Red selections and locally bundled VT323 accents retain the red-button character. Programme titles, settings and controls use clear sans-serif type. The now/next overlay adds current programme progress, block identity and the next transmission/time. It fades with the controls. On mobile, the guide has a swipe-down handle and larger buttons for short clips. The compact icon controls fade away after inactivity and return on pointer movement, a picture tap or keyboard focus. The settings popover holds picture framing, subtitle tracks/sizes, CRT texture, programme information and picture-in-picture. All animations respect reduced-motion preferences. No external fonts are requested; VT323's SIL Open Font License is included.
 
 **Today** opens near the current transmission. **Tomorrow** opens at the next British midnight. The earlier/later arrows move through time windows and **Now** returns the guide to the current transmission. Selecting a programme changes its information, while the stream continues. Left/right arrow keys move between programme cells. “Back to live” and the channel button join the current broadcast.
 
@@ -140,7 +144,7 @@ All dates use `Europe/London`, including clock-change days. A live playhead and 
 
 The browser estimates server time from the response and half of the round-trip time, then advances a monotonic clock. It seeks to `source_in + (server time − event start)`, changes clips at boundaries and corrects drift above 1.25 seconds. Smaller differences receive a gentle playback-rate correction. Target: roughly 1–2 seconds between viewers on a stable connection, not frame-accurate broadcast synchronisation. Buffering, long keyframe intervals in copied sources and slow networks can increase the difference. Encoding once inserts two-second keyframes for practical seeking.
 
-The browser waits for a tune-in click and starts muted on a new device. It rejoins after visibility/network changes and retries failed media while playing. A cached 15-minute guide lets transitions continue during a short guide outage. An unavailable programme produces a retry message; this slice has no automatic emergency-media substitution. It requires an H.264-capable modern browser. Clip transitions can have a brief loading gap; seamless playout remains future work.
+The browser waits for a tune-in click and starts muted on a new device. It rejoins after visibility/network changes and retries failed media while playing. A cached 15-minute guide lets transitions continue during a short guide outage. An unavailable programme produces a retry message; this slice has no automatic emergency-media substitution. It requires an H.264-capable modern browser. One imminent clip is prepared in a second, paused video element within ten seconds of a boundary; data saver/2G skip this. A ready clip can replace the picture at the shared-clock boundary. The existing loading path remains the fallback, including PiP/native fullscreen and unmuted Apple browsers. Loading gaps can still occur; this is not a promise of gapless playout.
 
 ### Television controls
 

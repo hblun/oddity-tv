@@ -12,7 +12,7 @@ from .media import prepare, save_json
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def register(args, asset_id, title, source, kind, copy=False, provenance=None, subtitles=None):
+def register(args, asset_id, title, source, kind, copy=False, provenance=None, subtitles=None, metadata=None, jellyfin_id=None):
     if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", asset_id):
         raise ValueError("Use a simple slug for the asset ID")
     catalog_path = args.config / "catalog.json"
@@ -33,6 +33,16 @@ def register(args, asset_id, title, source, kind, copy=False, provenance=None, s
             os.replace(prepared, args.media / prepared.name)
     catalog["assets"][asset_id] = {"title": title, "kind": kind, "duration": duration,
                                      "file": f"{asset_id}.mp4", "provenance": provenance or "Operator supplied", "captions": captions}
+    if metadata is not None:
+        catalog["assets"][asset_id]["source_metadata"] = metadata
+    if jellyfin_id:
+        catalog["assets"][asset_id]["jellyfin_id"] = jellyfin_id
+    if getattr(args, "description", None) is not None:
+        from .metadata import text
+        catalog["assets"][asset_id]["description"] = text(args.description)
+    if getattr(args, "tags", None) is not None:
+        from .metadata import tags
+        catalog["assets"][asset_id]["tags"] = tags(args.tags)
     save_json(catalog_path, catalog)
     print(f"Prepared {asset_id}: {duration:.3f}s. Add its ID to schedule.json and restart the station.")
 
@@ -70,14 +80,17 @@ def demo(args):
                                 "-preset", "ultrafast", "-crf", "27", "-pix_fmt", "yuv420p", "-g", "50", "-c:a", "aac", "-b:a", "64k",
                                 "-map_metadata", "-1", "-movflags", "+faststart", str(path)], check=True)
         catalog["assets"][key] = {"title": title.title(), "kind": kind, "duration": seconds,
-                                      "file": path.name, "provenance": "Original synthetic demonstration; CC0"}
+                                      "file": path.name, "description": subtitle.replace(" / ", ". "), "tags": ["Demonstration"], "provenance": "Original synthetic demonstration; CC0"}
     save_json(args.config / "catalog.json", catalog)
     from .captions import add_demo_captions
     add_demo_captions(args.config, args.media)
     save_json(args.config / "schedule.json", {
         "channel": "Oddity Television", "timezone": "Europe/London", "mode": "cycle",
         "origin": "2026-01-01T00:00:00Z", "period_seconds": 120, "filler": ["oddity", "ident"],
-        "blocks": [{"title": "The demonstration service", "offset": 0, "items": [
+        "programming_blocks": {"after-hours": {"title": "Past Watershed Strangeness",
+            "description": "A late excursion through unusual films, peculiar public information and unlikely interruptions.",
+            "tags": ["Late night", "Oddities"]}},
+        "blocks": [{"profile": "after-hours", "offset": 0, "items": [
             {"asset": "ident"}, {"asset": "documentary"}, {"asset": "advert"}, {"asset": "pif"},
             {"asset": "trailer"}, {"asset": "feature", "break_every": 20, "ads": ["advert"]}, {"asset": "ident"}]}]})
     print("Demo ready. A two-minute cycle is anchored to even UTC minutes; restarting preserves its position.")
@@ -115,6 +128,20 @@ def main():
     fetch.add_argument("--id", required=True)
     fetch.add_argument("--title", required=True)
     fetch.add_argument("--copy", action="store_true")
+    for command in (add, fetch):
+        command.add_argument("--description", help="Public synopsis override; omit to use source metadata")
+        command.add_argument("--tag", dest="tags", action="append", help="Public editorial tags (repeatable)")
+    editorial = sub.add_parser("metadata", help="Edit public descriptions/tags without preparing video again")
+    editorial.add_argument("--id", required=True)
+    descriptions = editorial.add_mutually_exclusive_group()
+    descriptions.add_argument("--description")
+    descriptions.add_argument("--description-file", type=Path)
+    descriptions.add_argument("--use-source-description", action="store_true")
+    editorial.add_argument("--tag", dest="tags", action="append")
+    editorial.add_argument("--use-source-tags", action="store_true")
+    sync = sub.add_parser("sync-metadata", help="Refresh cached Jellyfin metadata, preserving admin overrides")
+    sync.add_argument("--id", required=True)
+    sync.add_argument("--item-id", help="Jellyfin item ID; required once for older imports")
     sub.add_parser("validate", help="Check paths, scheduling and prepared media")
     export = sub.add_parser("export", help="Write the next 24 hours of public programme-guide data")
     export.add_argument("output", type=Path)
@@ -136,6 +163,39 @@ def main():
             asset.setdefault("captions", []).append(track)
             save_json(path, catalog)
             print("Subtitle track added. Restart the station to publish it.")
+        elif args.command == "metadata":
+            from .metadata import text, tags
+            path = args.config / "catalog.json"
+            catalog = json.loads(path.read_text())
+            asset = catalog["assets"][args.id]
+            if args.use_source_description:
+                asset.pop("description", None)
+            elif args.description is not None or args.description_file:
+                asset["description"] = text(args.description_file.read_text() if args.description_file else args.description)
+            if args.tags is not None and args.use_source_tags:
+                raise ValueError("Choose explicit tags or --use-source-tags")
+            if args.use_source_tags:
+                asset.pop("tags", None)
+            elif args.tags is not None:
+                asset["tags"] = tags(args.tags)
+            save_json(path, catalog)
+            print("Public metadata updated. Restart the station to publish it.")
+        elif args.command == "sync-metadata":
+            from .jellyfin import Jellyfin
+            path = args.config / "catalog.json"
+            catalog = json.loads(path.read_text())
+            asset = catalog["assets"][args.id]
+            item_id = args.item_id or asset.get("jellyfin_id")
+            if not item_id:
+                raise ValueError("Supply --item-id to associate this asset with Jellyfin")
+            client = Jellyfin()
+            try:
+                asset["source_metadata"] = client.metadata(item_id)
+                asset["jellyfin_id"] = item_id
+                save_json(path, catalog)
+            finally:
+                client.close()
+            print("Source metadata refreshed; editorial overrides kept. Restart the station.")
         elif args.command == "add":
             subtitles = [{"source": path, "language": args.subtitle_language} for path in args.subtitle]
             register(args, args.id, args.title, args.source, args.kind, args.copy, args.provenance, subtitles)
@@ -148,10 +208,11 @@ def main():
                 else:
                     with tempfile.TemporaryDirectory() as tmp:
                         source = Path(tmp) / "source.media"
+                        metadata = client.metadata(args.item_id)
                         media_source = client.media_source(args.item_id)
                         client.download(args.item_id, source, media_source["Id"])
                         subtitles = client.download_external_captions(args.item_id, media_source, tmp)
-                        register(args, args.id, args.title, source, "programme", args.copy, "Jellyfin prefetch; operator to confirm broadcast rights", subtitles)
+                        register(args, args.id, args.title, source, "programme", args.copy, "Jellyfin prefetch; operator to confirm broadcast rights", subtitles, metadata, args.item_id)
             finally:
                 client.close()
         else:

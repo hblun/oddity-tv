@@ -90,6 +90,20 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
     selected=event;
     if (manual) followLive=false;
     $('detail-title').textContent=event.title;
+    const description=event.description || '';
+    $('detail-description').textContent=description;$('detail-description').hidden=!description;
+    $('detail-description').classList.remove('expanded');
+    $('description-more').hidden=description.length<=120;
+    $('description-more').textContent='More';$('description-more').setAttribute('aria-expanded','false');
+    const episode=[event.series,event.season!=null && event.episode!=null ? `S${String(event.season).padStart(2,'0')} · E${String(event.episode).padStart(2,'0')}` : '',event.year].filter(Boolean).join(' · ');
+    $('detail-episode').textContent=episode;$('detail-episode').hidden=!episode;
+    $('block-banner').hidden=!event.programming;
+    $('detail-programming-title').textContent=event.programming?.title || '';
+    $('detail-programming-description').textContent=event.programming?.description || '';
+    $('detail-tags').replaceChildren();
+    for (const tag of [...new Set([...(event.tags || []),...(event.genres || [])])].slice(0,5)) {
+      const badge=document.createElement('span');badge.textContent=tag;$('detail-tags').append(badge);
+    }
     const state=eventState(event,time(),nextId);
     $('detail-kind').textContent=`${state}${event.captions?.length ? ' · CC' : ''}`;
     $('detail-time').textContent=`${timeText(event.start,event.end-event.start<60)}–${timeText(event.end,event.end-event.start<60)} · ${durationText(event.end-event.start)}`;
@@ -98,6 +112,7 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
       const active=item.event.id===event.id;
       item.row.classList.toggle('is-selected',active);
       item.button.setAttribute('aria-pressed',String(active));
+      item.shortcut?.setAttribute('aria-pressed',String(active));
     }
   }
   function shortTitle(event) {
@@ -201,17 +216,31 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
       rows=new Map();const fragment=document.createDocumentFragment();
       for (const event of events) {if (rows.has(event.id)) continue;const item=makeCell(event);if (item) {rows.set(event.id,item);fragment.append(item.row);}}
       list.replaceChildren(fragment);viewport.scrollLeft=0;
+      $('guide-shortcuts').replaceChildren();
+      for (const item of rows.values()) {
+        if (!item.row.classList.contains('short-cell') || item.event.kind==='programme') continue;
+        const shortcut=document.createElement('button');shortcut.type='button';
+        shortcut.textContent=`${timeText(item.event.start,scale.tick<60)} · ${item.event.title}`;
+        shortcut.title=shortcut.textContent;shortcut.setAttribute('aria-pressed','false');
+        shortcut.addEventListener('click',()=>select(item.event,true));
+        item.shortcut=shortcut;$('guide-shortcuts').append(shortcut);
+      }
       $('guide-channel-name').textContent=channel;$('guide-channel').setAttribute('aria-label',`Watch ${channel} live`);
       $('guide-empty').hidden=rows.size>0;$('guide-canvas').hidden=rows.size===0;
       drawRuler();navigation();
       const chosen=followLive ? events.find(e=>e.start<=time() && time()<e.end) : events.find(e=>e.id===previous?.id);
       if (chosen || events[0]) select(chosen || events[0]);
-      else {$('detail-title').textContent='No programme information';$('detail-kind').textContent=channel;$('detail-time').textContent='';$('detail-block').textContent='';selected=null;}
+      else {$('detail-title').textContent='No programme information';$('detail-kind').textContent=channel;$('detail-time').textContent='';$('detail-block').textContent='';$('detail-description').hidden=true;$('detail-episode').hidden=true;$('description-more').hidden=true;$('block-banner').hidden=true;$('detail-tags').replaceChildren();selected=null;}
       updateLive(time(),nextId);status(scale.span===120 ? '30-second intervals' : 'All times UK');
     } catch {
       if (token===generation) status('Guide unavailable. Refresh to retry.');
     } finally {clearTimeout(timeout);if (token===generation) {loading=false;viewport.setAttribute('aria-busy','false');}}
   }
+  $('description-more').addEventListener('click',()=>{
+    const expanded=$('detail-description').classList.toggle('expanded');
+    $('description-more').setAttribute('aria-expanded',String(expanded));
+    $('description-more').textContent=expanded ? 'Less' : 'More';
+  });
   function goNow() {period='today';followLive=true;range=null;load();}
   for (const button of document.querySelectorAll('[data-period]')) button.addEventListener('click',()=>{period=button.dataset.period;followLive=period==='today';range=null;load();});
   function step(direction) {

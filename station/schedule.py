@@ -3,13 +3,14 @@
 All durations and offsets are seconds; all public timestamps are Unix seconds.
 No per-viewer state, random choices or background playback process is involved.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import math
 from pathlib import Path
 import re
 from zoneinfo import ZoneInfo
 from .jellyfintv import content_chunks
+from .metadata import public_metadata, text, tags
 
 
 def positive(value, name):
@@ -26,6 +27,11 @@ class Event:
     end: float
     source_in: float = 0
     block: str = "Continuity"
+    block_id: str | None = None
+    block_description: str = ""
+    block_tags: tuple = ()
+    block_start: float | None = None
+    block_end: float | None = None
 
 
 class Schedule:
@@ -59,6 +65,14 @@ class Schedule:
                         raise ValueError(f"Captions for asset {key} must be WebVTT")
                 if not re.fullmatch(r"[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*", track.get("language", "und")):
                     raise ValueError("Caption language must be a language tag such as en or en-GB")
+        self.block_definitions = config.get("programming_blocks", {})
+        if not isinstance(self.block_definitions, dict):
+            raise ValueError("programming_blocks must be an object of named definitions")
+        for key, definition in self.block_definitions.items():
+            if not re.fullmatch(r"[a-zA-Z0-9_-]{1,100}", key) or not isinstance(definition, dict):
+                raise ValueError("Programming block definitions need slug IDs and objects")
+            if not text(definition.get("title"), 200):
+                raise ValueError("Programming blocks need a title")
         self.blocks = config["blocks"]
         self.filler = config.get("filler", [])
         if not self.blocks or not self.filler:
@@ -98,6 +112,12 @@ class Schedule:
 
     def expand(self, block, start):
         events = []
+        block_start = start
+        profile = block.get("profile")
+        if profile is not None and profile not in self.block_definitions:
+            raise ValueError("Unknown programming block profile")
+        definition = {**self.block_definitions.get(profile, {}), **block}
+        title = text(definition.get("title", "Programme"), 200)
         if not block["items"]:
             raise ValueError("Empty programming block")
         for item in (chunk for authored in block["items"] for chunk in content_chunks(authored, self.assets)):
@@ -107,9 +127,11 @@ class Schedule:
             duration = positive(item.get("duration", total - source), "item duration")
             if not math.isfinite(source) or source < 0 or source + duration > total + .001:
                 raise ValueError(f"Scheduled excerpt exceeds asset {key}")
-            events.append(Event(key, start, start + duration, source, block.get("title", "Programme")))
+            events.append(Event(key, start, start + duration, source, title))
             start += duration
-        return events
+        return [replace(event, block_id=profile, block_description=text(definition.get("description")),
+                        block_tags=tuple(tags(definition.get("tags", []))),
+                        block_start=block_start, block_end=start) for event in events]
 
     @staticmethod
     def check_overlaps(events):
@@ -176,10 +198,15 @@ class Schedule:
 
     def public(self, event):
         asset = self.assets[event.asset]
-        return {"id": f"{event.start:.3f}:{event.asset}", "asset": event.asset,
+        metadata = {key: value for key, value in public_metadata(asset).items() if value is not None and value != ""}
+        metadata["tags"] = tags(metadata["tags"] + list(event.block_tags))
+        programming = None if event.block_start is None else {
+            "id": event.block_id, "title": event.block, "description": event.block_description,
+            "tags": list(event.block_tags), "start": event.block_start, "end": event.block_end}
+        return {**metadata, "programming": programming, "id": f"{event.start:.3f}:{event.asset}", "asset": event.asset,
                 "title": asset["title"], "kind": asset.get("kind", "programme"),
                 "block": event.block, "start": event.start, "end": event.end,
-                "source_in": event.source_in, "url": f"/media/{event.asset}.mp4",
+                "source_in": event.source_in, "source_duration": float(asset["duration"]), "url": f"/media/{event.asset}.mp4",
                 "captions": [{"id": t["id"], "language": t.get("language", "und"),
                               "label": t.get("label", t.get("language", "Subtitles")), "default": t.get("default", False),
                               "url": f"/captions/{event.asset}/{t['id']}.vtt"} for t in asset.get("captions", [])]}

@@ -34,7 +34,7 @@ async def run(url):
             await page.locator('#guide-close').click()
             await expect(page.locator('#guide-toggle')).to_be_focused()
             await page.locator('#tune').click()
-            await page.wait_for_function("document.querySelector('video').readyState>=2 && !document.querySelector('video').paused")
+            await page.wait_for_function("document.querySelector('#video').readyState>=2 && !document.querySelector('#video').paused")
             await expect(page.locator('#programme-guide')).to_be_hidden()
             await page.locator('#guide-toggle').click()
             cells=page.locator('.programme-button')
@@ -53,7 +53,7 @@ async def run(url):
             assert await page.locator('#guide-window').inner_text()!=initial_window
             await page.locator('#guide-prev').click()
             await expect(page.locator('#guide-window')).to_have_text(initial_window)
-            await page.wait_for_function("!document.querySelector('video').paused")
+            await page.wait_for_function("!document.querySelector('#video').paused")
             await page.locator('#guide-now').click()
             await expect(page.locator('#guide-viewport')).to_have_attribute('aria-busy','false')
             await expect(page.locator('#guide-playhead')).to_be_visible()
@@ -64,7 +64,7 @@ async def run(url):
             await page.locator('#guide-refresh').click()
             await expect(page.locator('#guide-status')).to_contain_text('Guide unavailable')
             assert await cells.count()==count
-            await page.wait_for_function("!document.querySelector('video').paused")
+            await page.wait_for_function("!document.querySelector('#video').paused")
             mobile=await browser.new_context(viewport={'width':390,'height':844},is_mobile=True,reduced_motion='reduce')
             phone=await mobile.new_page()
             phone.on('pageerror',lambda error:errors.append(str(error)))
@@ -79,14 +79,18 @@ async def run(url):
             after=await phone.locator('#guide-channel').bounding_box()
             assert abs(left['x']-after['x'])<1,'Channel rail must stay fixed while the timeline scrolls'
             await phone.screenshot(path=str(output/'epg-mobile.png'),full_page=True)
-            await phone.keyboard.press('Escape')
+            handle=await phone.locator('#sheet-handle').bounding_box()
+            await phone.mouse.move(handle['x']+handle['width']/2,handle['y']+10)
+            await phone.mouse.down()
+            await phone.mouse.move(handle['x']+handle['width']/2,handle['y']+85,steps=6)
+            await phone.mouse.up()
             await expect(phone.locator('#programme-guide')).to_be_hidden()
             await expect(phone.locator('#guide-toggle')).to_be_focused()
             assert not errors,errors
             assert all(urlparse(request).netloc==urlparse(url).netloc for request in requests),requests
             report={'status':'pass','desktop':'1440×1050','mobile':'390×844','page_errors':errors,
                 'checked':['stream-first wrapper','guide hidden on arrival','guide dismiss and focus return','time grid','selection and arrow keys','day navigation','earlier/later windows',
-                           'playback while browsing','Now marker','one real channel','failed refresh retains guide','fixed mobile channel rail','mobile overflow']}
+                           'playback while browsing','Now marker','one real channel','failed refresh retains guide','fixed mobile channel rail','mobile swipe dismissal','mobile overflow']}
             (output/'epg-browser.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         finally: await browser.close()
 

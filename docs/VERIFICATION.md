@@ -1,5 +1,14 @@
 # Verification record — 24 October 2026
 
+## Now/next, programming context and clip preparation
+
+The controls overlay now shows a block label, source-aware programme progress and the following transmission/time. The mobile guide has a downward drag handle and a separate row of adequately sized short-clip buttons. Selected programme details include an expandable synopsis, episode/film metadata and tags; block descriptions remain in the guide.
+
+New named programming profiles carry identity, descriptions and tags through advert/resume boundaries. Existing inline block titles remain compatible. Jellyfin imports and private metadata refresh populate an explicit public metadata allowlist; catalogue overrides survive source refresh, with commands to return to source values. JSON, guide search and XMLTV share the resolved metadata. A second paused video prepares only an imminent clip, skipping data saver/2G; promotion preserves viewing preferences and shared-clock seeking, with the single-element fallback retained.
+
+Validation: **28 Python tests pass**, covering metadata precedence, HTML-to-text conversion, private-field isolation, block boundaries through adverts, CLI edit/sync, searchable tags and XMLTV descriptions/episode data, plus the existing delivery, scheduling, import and caption checks. JavaScript tests pass, including preload timing/data-saver rules and source-aware progress. Syntax, Python compilation, HTML ID/reference checks and whitespace validation pass. Browser scripts now select the active video explicitly, count actual active transmissions rather than speculative preloads, and exercise mobile sheet dismissal. Browser rendering, swipe gestures and real dual-video transition timing remain **unverified in this environment** because local sockets/Chromium execution are blocked; no gapless-playback or visual-verification claim is made.
+
+
 ## Stream-first viewer update
 
 The picture fills the viewport, with the guide hidden on arrival. Guide opens a floating card; close, outside click and Escape dismiss it and restore focus. Tune-in/live resume also dismiss the guide. Settings have their own popover, with secondary controls moved out of the main bar. Icon controls and the current title fade after inactivity; keyboard focus, pause and idle states keep controls available. Sans-serif programme titles and settings improve readability, with pixel accents and red selections retained. Pause and reconnect messages are shorter. Redundant theatre mode is removed because the default layout already fills the viewport. Motion respects the operating system's reduced-motion setting.

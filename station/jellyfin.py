@@ -3,6 +3,7 @@ import os
 from urllib.parse import quote, urlparse
 import httpx
 from .jellyfintv import search_params
+from .metadata import jellyfin_metadata
 
 
 class Jellyfin:
@@ -38,10 +39,16 @@ class Jellyfin:
                 yield {"id": item["Id"], "title": item["Name"], "type": item.get("Type"),
                        "duration": item.get("RunTimeTicks", 0) / 10_000_000,
                        "series": item.get("SeriesName"), "season": item.get("ParentIndexNumber"),
-                       "episode": item.get("IndexNumber"), "genres": item.get("Genres", []), "tags": item.get("Tags", [])}
+                       "episode": item.get("IndexNumber"), **jellyfin_metadata(item)}
             offset += len(batch)
             if not batch or offset >= data.get("TotalRecordCount", offset):
                 break
+
+    def metadata(self, item_id):
+        response = self.client.get(f"Items/{quote(item_id, safe='')}", params={
+            "Fields": "Overview,ProductionYear,Genres,Tags,SeriesName,ParentIndexNumber,IndexNumber"})
+        response.raise_for_status()
+        return jellyfin_metadata(response.json())
 
     def media_source(self, item_id):
         response = self.client.get(f"Items/{quote(item_id, safe='')}", params={"Fields": "MediaSources,MediaStreams"})

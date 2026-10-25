@@ -2,32 +2,128 @@
   "channel": "Oddity Television",
   "timezone": "Europe/London",
   "mode": "weekly",
-  "filler": ["oddity", "ident", "advert"],
+  "filler": [
+    "oddity",
+    "ident",
+    "advert"
+  ],
   "blocks": [
     {
-      "title": "The evening service",
-      "days": [0, 1, 2, 3, 4, 5, 6],
+      "days": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
       "at": "19:00:00",
       "items": [
-        {"asset": "ident"},
-        {"asset": "documentary"},
-        {"asset": "advert"},
-        {"asset": "pif"},
-        {"asset": "trailer"}
-      ]
+        {
+          "asset": "ident"
+        },
+        {
+          "asset": "documentary"
+        },
+        {
+          "asset": "advert"
+        },
+        {
+          "asset": "pif"
+        },
+        {
+          "asset": "trailer"
+        }
+      ],
+      "profile": "evening-service"
     },
     {
-      "title": "Saturday Night Cinema",
-      "days": [5],
+      "days": [
+        5
+      ],
       "at": "19:30:00",
       "items": [
-        {"asset": "ident"},
-        {"asset": "feature", "in": 0, "duration": 20},
-        {"asset": "advert"},
-        {"asset": "pif"},
-        {"asset": "feature", "in": 20, "duration": 20},
-        {"asset": "ident"}
+        {
+          "asset": "ident"
+        },
+        {
+          "asset": "feature",
+          "in": 0,
+          "duration": 20
+        },
+        {
+          "asset": "advert"
+        },
+        {
+          "asset": "pif"
+        },
+        {
+          "asset": "feature",
+          "in": 20,
+          "duration": 20
+        },
+        {
+          "asset": "ident"
+        }
+      ],
+      "profile": "saturday-cinema"
+    },
+    {
+      "profile": "after-hours",
+      "days": [
+        4,
+        5
+      ],
+      "at": "23:00:00",
+      "items": [
+        {
+          "asset": "ident"
+        },
+        {
+          "asset": "oddity"
+        },
+        {
+          "asset": "feature"
+        },
+        {
+          "asset": "pif"
+        }
       ]
     }
-  ]
+  ],
+  "programming_blocks": {
+    "evening-service": {
+      "title": "The Evening Service",
+      "description": "Archive films and a few unexpected interruptions.",
+      "tags": [
+        "Archive",
+        "British"
+      ]
+    },
+    "saturday-cinema": {
+      "title": "Saturday Night Cinema",
+      "description": "A feature, a few trailers, and time for an interval.",
+      "tags": [
+        "Cinema",
+        "Weekend"
+      ]
+    },
+    "saturday-cartoons": {
+      "title": "Saturday Morning Cartoons",
+      "description": "An animated start to the weekend.",
+      "tags": [
+        "Animation",
+        "Saturday morning"
+      ]
+    },
+    "after-hours": {
+      "title": "Past Watershed Strangeness",
+      "description": "Unusual films and peculiar things from the archive.",
+      "tags": [
+        "Late night",
+        "Oddities"
+      ]
+    }
+  }
 }

@@ -74,7 +74,10 @@ def create_app(schedule=None):
             asset = station.assets[event.asset]
             if programmes_only and asset.get("kind", "programme") != "programme":
                 continue
-            if query and query not in (asset["title"] + " " + event.block).casefold():
+            public = station.public(event)
+            searchable = " ".join([public["title"], event.block, public.get("description", ""),
+                                   public.get("series", ""), *public["tags"], *public["genres"]])
+            if query and query not in searchable.casefold():
                 continue
             matches.append(event)
             if len(matches) > limit:
@@ -120,8 +123,18 @@ def create_app(schedule=None):
         for event in station.timeline(now, now + 86400):
             stamp = lambda t: datetime.fromtimestamp(t, timezone.utc).strftime("%Y%m%d%H%M%S +0000")
             p = SubElement(tv, "programme", {"channel": "oddity-1", "start": stamp(event.start), "stop": stamp(event.end)})
-            SubElement(p, "title", {"lang": "en"}).text = station.assets[event.asset]["title"]
-            SubElement(p, "category").text = station.assets[event.asset].get("kind", "programme")
+            entry = station.public(event)
+            SubElement(p, "title", {"lang": "en"}).text = entry["title"]
+            if entry.get("description"):
+                SubElement(p, "desc", {"lang": "en"}).text = entry["description"]
+            for category in dict.fromkeys([entry["kind"], *([entry["block"]] if entry["programming"] else []), *entry["tags"], *entry["genres"]]):
+                SubElement(p, "category").text = category
+            if entry.get("series"):
+                SubElement(p, "sub-title", {"lang": "en"}).text = entry["series"]
+            if entry.get("season") is not None and entry.get("episode") is not None:
+                SubElement(p, "episode-num", {"system": "onscreen"}).text = f"S{entry['season']:02}E{entry['episode']:02}"
+            if entry.get("year") is not None:
+                SubElement(p, "date").text = str(entry["year"])
         return Response(tostring(tv, encoding="utf-8", xml_declaration=True), media_type="application/xml")
 
     for route, filename, content_type in [("/", "index.html", "text/html"), ("/player.js", "player.js", "text/javascript"), ("/epg.js", "epg.js", "text/javascript"), ("/tv-controls.js", "tv-controls.js", "text/javascript"), ("/channel-two-playback.js", "channel-two-playback.js", "text/javascript"), ("/style.css", "style.css", "text/css"), ("/fonts/vt323.ttf", "fonts/vt323.ttf", "font/ttf")]:

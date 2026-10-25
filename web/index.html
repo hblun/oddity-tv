@@ -15,13 +15,14 @@
 
         <div class="screen" id="screen">
           <video id="video" playsinline preload="auto" aria-label="Live Oddity Television broadcast"></video>
+          <video id="preload-video" playsinline preload="auto" muted hidden aria-hidden="true"></video>
           <div id="standby"><p><span class="station-mark">o.</span> ODDITY TELEVISION</p><button id="tune" class="primary">▶ Tune in</button></div>
           <span class="watermark" aria-hidden="true">o.</span><span id="receiver-state" class="receiver-state">READY</span>
           <div class="crt-overlay" aria-hidden="true"></div>
           <div class="screen-info" id="screen-info" hidden><span class="osd-channel">01 <small>ODDITY TELEVISION</small></span><strong id="screen-title">Live television</strong><span id="screen-detail"></span></div>
           <div class="paused-overlay" id="paused-overlay" hidden><button id="resume-live" type="button" class="resume-button" aria-label="Resume at the live broadcast position"><span aria-hidden="true">▶</span></button><span>Paused</span><p>Resume joins live</p></div>
         </div>
-        <div class="viewing-now" aria-hidden="true"><span class="on-air-dot"></span><span id="viewing-title">Oddity Television</span></div>
+        <div class="viewing-now" aria-hidden="true"><span class="block-label" id="viewing-block" hidden></span><div class="now-line"><span class="on-air-dot"></span><span id="viewing-title">Oddity Television</span></div><progress id="programme-progress" max="1" value="0"></progress><div class="next-programme" id="viewing-next" hidden>Next <span id="next-title"></span><span id="next-time"></span></div></div>
         <div class="tv-remote" role="group" aria-label="Television controls">
           <div class="transport-controls">
             <button id="transport" type="button" aria-label="Play live television" title="Play / pause (Space)"><span aria-hidden="true" id="transport-icon">▶</span><span class="sr-only" id="transport-label">Play live</span></button>
@@ -48,16 +49,19 @@
 
     <button class="guide-backdrop" id="guide-backdrop" type="button" aria-label="Close TV guide" tabindex="-1" hidden></button>
     <section class="programme-guide" id="programme-guide" aria-labelledby="guide-heading" hidden>
+      <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
       <header class="guide-header">
         <h1 id="guide-heading">TV Guide</h1><button id="guide-close" type="button" aria-label="Close TV guide">×</button>
         <div class="guide-days" role="group" aria-label="Guide day"><button type="button" data-period="today" aria-pressed="true">Today</button><button type="button" data-period="tomorrow" aria-pressed="false">Tomorrow</button></div>
         <button id="guide-now" type="button">Now</button>
         <div class="guide-clock"><span id="guide-date"></span><time id="clock">--:--:--</time></div>
       </header>
+      <div class="block-banner" id="block-banner" hidden><span id="detail-programming-title"></span><p id="detail-programming-description"></p></div>
       <section class="programme-details" aria-labelledby="detail-title">
         <div class="selected-programme"><p id="detail-kind"></p><h2 id="detail-title">Loading guide…</h2><p><span id="detail-time"></span><span id="detail-block"></span></p></div>
         <button id="detail-watch" type="button" class="primary">Back to live</button>
       </section>
+      <div class="programme-context"><p class="episode-meta" id="detail-episode" hidden></p><p id="detail-description" hidden></p><button id="description-more" type="button" aria-controls="detail-description" aria-expanded="false" hidden>More</button><div class="programme-tags" id="detail-tags" aria-label="Programme tags"></div></div>
       <div class="guide-navigation"><button id="guide-prev" type="button" aria-label="Earlier programmes">‹</button><span id="guide-window">Programme times</span><button id="guide-next" type="button" aria-label="Later programmes">›</button><button id="guide-refresh" type="button" aria-label="Refresh TV guide">↻</button><span id="guide-status" role="status" aria-live="polite">Loading…</span></div>
       <div class="guide-matrix">
         <div class="channel-rail"><span class="rail-heading">CH</span><button id="guide-channel" type="button" aria-label="Watch Oddity Television live"><span class="channel-number">01</span><strong id="guide-channel-name">Oddity Television</strong></button></div>
@@ -66,6 +70,7 @@
           <p id="guide-empty" class="guide-empty" hidden>No programmes available in this window. Try Now or refresh the guide.</p>
         </div>
       </div>
+      <div class="guide-shortcuts" id="guide-shortcuts" role="group" aria-label="Short clips in this window"></div>
     </section>
   </main>
 </body>
