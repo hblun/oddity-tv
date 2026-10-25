@@ -8,42 +8,59 @@
   <link rel="stylesheet" href="/style.css"><script type="module" src="/player.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#programme-guide">Skip to TV guide</a>
+  <button class="skip-link" id="skip-guide" type="button">Open TV guide</button>
   <main class="station">
       <section class="television" aria-label="Television player">
         <div class="tv-set" id="tv-set" data-picture="fit" data-caption-size="normal">
 
         <div class="screen" id="screen">
           <video id="video" playsinline preload="auto" aria-label="Live Oddity Television broadcast"></video>
-          <div id="standby"><p>Oddity Television</p><button id="tune" class="primary">▶ Watch live</button></div>
+          <div id="standby"><p><span class="station-mark">o.</span> ODDITY TELEVISION</p><button id="tune" class="primary">▶ Tune in</button></div>
           <span class="watermark" aria-hidden="true">o.</span><span id="receiver-state" class="receiver-state">READY</span>
           <div class="crt-overlay" aria-hidden="true"></div>
           <div class="screen-info" id="screen-info" hidden><span class="osd-channel">01 <small>ODDITY TELEVISION</small></span><strong id="screen-title">Live television</strong><span id="screen-detail"></span></div>
-          <div class="paused-overlay" id="paused-overlay" hidden><strong>Ⅱ</strong><span>PAUSED ON YOUR SCREEN</span><p>The channel carries on.<br>Play rejoins the live broadcast.</p><button id="resume-live" type="button" class="primary">Play live <span aria-hidden="true">▶</span></button></div>
+          <div class="paused-overlay" id="paused-overlay" hidden><button id="resume-live" type="button" class="resume-button" aria-label="Resume at the live broadcast position"><span aria-hidden="true">▶</span></button><span>Paused</span><p>Resume joins live</p></div>
         </div>
+        <div class="viewing-now" aria-hidden="true"><span class="on-air-dot"></span><span id="viewing-title">Oddity Television</span></div>
         <div class="tv-remote" role="group" aria-label="Television controls">
-          <div class="transport-controls"><button id="transport" type="button" aria-label="Play live television" title="Play or pause (Space or K)"><span aria-hidden="true" id="transport-icon">▶</span><span class="sr-only" id="transport-label">Play live</span></button><button id="sound" type="button" aria-label="Turn sound on" title="Mute or unmute (M)">Mute</button><label class="volume-control"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume"></label><button id="live" type="button" class="live-control" title="Rejoin the live broadcast (L)"><span class="dot"></span>LIVE</button></div>
-          <div class="screen-controls"><button id="captions" type="button" aria-label="Turn subtitles on" aria-pressed="false" title="Subtitles (C)" disabled>CC</button><button id="info" type="button" aria-label="Show programme information" aria-pressed="false" title="Programme information (I)">Info</button><button id="theatre" type="button" aria-label="Theatre mode" aria-pressed="false" title="Theatre mode (T)">Theatre</button><button id="pip" type="button" aria-label="Picture-in-picture" aria-pressed="false" title="Picture-in-picture" hidden>PiP</button><button id="fullscreen" type="button" aria-label="Enter full screen" title="Full screen (F)">Full screen</button></div>
+          <div class="transport-controls">
+            <button id="transport" type="button" aria-label="Play live television" title="Play / pause (Space)"><span aria-hidden="true" id="transport-icon">▶</span><span class="sr-only" id="transport-label">Play live</span></button>
+            <button id="sound" type="button" aria-label="Turn sound on" title="Sound (M)"></button>
+            <label class="volume-control"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume"></label>
+            <button id="live" type="button" class="live-control" title="Rejoin live (L)"><span class="dot"></span>LIVE</button>
+          </div>
+          <div class="screen-controls">
+            <button id="guide-toggle" class="guide-toggle" type="button" aria-label="TV guide" aria-expanded="false" aria-controls="programme-guide" title="TV guide (G)"><span class="guide-icon" aria-hidden="true"></span><span>Guide</span></button>
+            <button id="captions" type="button" aria-label="Turn subtitles on" aria-pressed="false" title="Subtitles (C)" disabled>CC</button>
+            <button id="settings-toggle" type="button" aria-label="Picture and sound settings" aria-expanded="false" aria-controls="receiver-settings" title="Settings"></button>
+            <button id="fullscreen" type="button" aria-label="Enter full screen" title="Full screen (F)"></button>
+          </div>
         </div>
-        <details class="receiver-settings" id="receiver-settings"><summary>Picture, sound &amp; subtitles <span aria-hidden="true">＋</span></summary><div class="settings-grid"><label>Picture size<select id="picture"><option value="fit">Fit picture</option><option value="classic">4:3 television frame</option><option value="wide">16:9 widescreen frame</option><option value="fill">Fill screen (crop edges)</option></select></label><label>Subtitle track<select id="subtitle-track"><option value="off">Off — no subtitles available</option></select></label><label>Subtitle size<select id="caption-size"><option value="normal">Normal</option><option value="large">Large</option></select></label><label class="crt-setting"><input id="crt" type="checkbox"> CRT picture texture <small>A subtle, static television effect.</small></label></div><p id="subtitle-status">Subtitles appear here when supplied with the programme.</p><p class="remote-help">SPACE play / pause · M mute · C subtitles · F full screen · I information · G guide · L live</p></details>
+        <div class="receiver-settings" id="receiver-settings" hidden role="region" aria-label="Player settings">
+          <header><strong>Settings</strong><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
+          <div class="settings-grid"><label>Picture<select id="picture"><option value="fit">Fit</option><option value="classic">4:3</option><option value="wide">16:9</option><option value="fill">Fill</option></select></label><label>Subtitles<select id="subtitle-track"><option value="off">Not available</option></select></label><label>Subtitle size<select id="caption-size"><option value="normal">Normal</option><option value="large">Large</option></select></label><label class="crt-setting"><input id="crt" type="checkbox"> CRT texture</label></div>
+          <p id="subtitle-status" class="sr-only"></p>
+          <div class="extra-controls"><button id="info" type="button" aria-label="Show programme information" aria-pressed="false" title="Programme information (I)">Programme info</button><button id="pip" type="button" aria-label="Picture-in-picture" aria-pressed="false" hidden>Picture in picture</button></div>
+        </div>
         <p id="status" class="player-status" role="status" aria-live="polite"></p>
         </div>
       </section>
 
-    <section class="programme-guide" id="programme-guide" aria-labelledby="guide-heading">
+    <button class="guide-backdrop" id="guide-backdrop" type="button" aria-label="Close TV guide" tabindex="-1" hidden></button>
+    <section class="programme-guide" id="programme-guide" aria-labelledby="guide-heading" hidden>
       <header class="guide-header">
-        <h1 id="guide-heading">TV Guide</h1>
+        <h1 id="guide-heading">TV Guide</h1><button id="guide-close" type="button" aria-label="Close TV guide">×</button>
         <div class="guide-days" role="group" aria-label="Guide day"><button type="button" data-period="today" aria-pressed="true">Today</button><button type="button" data-period="tomorrow" aria-pressed="false">Tomorrow</button></div>
         <button id="guide-now" type="button">Now</button>
         <div class="guide-clock"><span id="guide-date"></span><time id="clock">--:--:--</time></div>
       </header>
       <section class="programme-details" aria-labelledby="detail-title">
         <div class="selected-programme"><p id="detail-kind"></p><h2 id="detail-title">Loading guide…</h2><p><span id="detail-time"></span><span id="detail-block"></span></p></div>
-        <button id="detail-watch" type="button" class="primary">Watch live</button>
+        <button id="detail-watch" type="button" class="primary">Back to live</button>
       </section>
       <div class="guide-navigation"><button id="guide-prev" type="button" aria-label="Earlier programmes">‹</button><span id="guide-window">Programme times</span><button id="guide-next" type="button" aria-label="Later programmes">›</button><button id="guide-refresh" type="button" aria-label="Refresh TV guide">↻</button><span id="guide-status" role="status" aria-live="polite">Loading…</span></div>
       <div class="guide-matrix">
-        <div class="channel-rail"><span class="rail-heading">Channel</span><button id="guide-channel" type="button" aria-label="Watch Oddity Television live"><span class="channel-number">01</span><strong id="guide-channel-name">Oddity Television</strong></button></div>
+        <div class="channel-rail"><span class="rail-heading">CH</span><button id="guide-channel" type="button" aria-label="Watch Oddity Television live"><span class="channel-number">01</span><strong id="guide-channel-name">Oddity Television</strong></button></div>
         <div id="guide-viewport" class="guide-viewport" role="region" aria-label="Programme timeline; scroll for later times" tabindex="0">
           <div id="guide-canvas" class="guide-canvas"><div id="guide-times" class="guide-times" aria-hidden="true"></div><ol id="guide" aria-label="Oddity Television broadcast schedule"></ol><div id="guide-playhead" class="guide-playhead" aria-hidden="true"><span>Now</span></div></div>
           <p id="guide-empty" class="guide-empty" hidden>No programmes available in this window. Try Now or refresh the guide.</p>

@@ -23,13 +23,20 @@ async def run(url):
         page.on('request',lambda request:requests.append(request.url))
         try:
             await page.goto(url)
+            await expect(page.locator('#programme-guide')).to_be_hidden()
+            await page.locator('#guide-toggle').click()
+            await expect(page.locator('#guide-toggle')).to_have_attribute('aria-expanded','true')
             await expect(page.locator('.programme-button').first).to_be_visible()
             await page.evaluate('document.fonts.ready')
             assert await page.evaluate('document.fonts.check(\'22px "Oddity Pixel"\')'), 'Pixel font did not load'
             await expect(page.locator('main > section')).to_have_count(2)
             await expect(page.locator('footer,.masthead,.on-now')).to_have_count(0)
+            await page.locator('#guide-close').click()
+            await expect(page.locator('#guide-toggle')).to_be_focused()
             await page.locator('#tune').click()
             await page.wait_for_function("document.querySelector('video').readyState>=2 && !document.querySelector('video').paused")
+            await expect(page.locator('#programme-guide')).to_be_hidden()
+            await page.locator('#guide-toggle').click()
             cells=page.locator('.programme-button')
             await cells.nth(1).focus()
             title=(await cells.nth(1).get_attribute('title')).split(' · ')[0]
@@ -62,6 +69,8 @@ async def run(url):
             phone=await mobile.new_page()
             phone.on('pageerror',lambda error:errors.append(str(error)))
             await phone.goto(url)
+            await expect(phone.locator('#programme-guide')).to_be_hidden()
+            await phone.locator('#guide-toggle').click()
             await expect(phone.locator('.programme-button').first).to_be_visible()
             await phone.evaluate('document.fonts.ready')
             assert await phone.evaluate('document.documentElement.scrollWidth<=innerWidth'),'Page overflows horizontally'
@@ -70,10 +79,13 @@ async def run(url):
             after=await phone.locator('#guide-channel').bounding_box()
             assert abs(left['x']-after['x'])<1,'Channel rail must stay fixed while the timeline scrolls'
             await phone.screenshot(path=str(output/'epg-mobile.png'),full_page=True)
+            await phone.keyboard.press('Escape')
+            await expect(phone.locator('#programme-guide')).to_be_hidden()
+            await expect(phone.locator('#guide-toggle')).to_be_focused()
             assert not errors,errors
             assert all(urlparse(request).netloc==urlparse(url).netloc for request in requests),requests
             report={'status':'pass','desktop':'1440×1050','mobile':'390×844','page_errors':errors,
-                'checked':['two-surface wrapper','time grid','selection and arrow keys','day navigation','earlier/later windows',
+                'checked':['stream-first wrapper','guide hidden on arrival','guide dismiss and focus return','time grid','selection and arrow keys','day navigation','earlier/later windows',
                            'playback while browsing','Now marker','one real channel','failed refresh retains guide','fixed mobile channel rail','mobile overflow']}
             (output/'epg-browser.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
         finally: await browser.close()

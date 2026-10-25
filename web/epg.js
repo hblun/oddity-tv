@@ -91,8 +91,8 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
     if (manual) followLive=false;
     $('detail-title').textContent=event.title;
     const state=eventState(event,time(),nextId);
-    $('detail-kind').textContent=`01 ${channel} · ${event.kind.replaceAll('-',' ')} · ${state}${event.captions?.length ? ' · SUB' : ''}`;
-    $('detail-time').textContent=`${zonedTime(event.start,event.end-event.start<60 || event.start%60!==0)}–${timeText(event.end,event.end-event.start<60 || event.end%60!==0)} · ${durationText(event.end-event.start)}`;
+    $('detail-kind').textContent=`${state}${event.captions?.length ? ' · CC' : ''}`;
+    $('detail-time').textContent=`${timeText(event.start,event.end-event.start<60)}–${timeText(event.end,event.end-event.start<60)} · ${durationText(event.end-event.start)}`;
     $('detail-block').textContent=` · ${event.block}${event.source_in>0 ? ' · Resumes' : ''}`;
     for (const item of rows.values()) {
       const active=item.event.id===event.id;
@@ -133,7 +133,7 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
     $('guide-prev').disabled=!range || range.start<=day.start;
     $('guide-next').disabled=!range || range.end>=day.end;
     $('guide-date').textContent=dayFormat.format((range?.start ?? time())*1000);
-    $('guide-window').textContent=range ? `${zonedTime(range.start,scale.tick<60)} – ${zonedTime(range.end,scale.tick<60)}` : 'Programme times';
+    $('guide-window').textContent=range ? `${timeText(range.start,scale.tick<60)} – ${timeText(range.end,scale.tick<60)}` : 'Programme times';
     for (const button of document.querySelectorAll('[data-period]')) button.setAttribute('aria-pressed',String(button.dataset.period===period));
   }
   function drawRuler() {
@@ -166,7 +166,7 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
     if (followLive && active && selected?.id!==active.id) select(active);
     else if (selected) {
       const state=eventState(selected,timestamp,nextId);
-      $('detail-kind').textContent=`01 ${channel} · ${selected.kind.replaceAll('-',' ')} · ${state}${selected.captions?.length ? ' · SUB' : ''}`;
+      $('detail-kind').textContent=`${state}${selected.captions?.length ? ' · CC' : ''}`;
     }
   }
   async function load() {
@@ -229,7 +229,7 @@ export function createProgrammeGuide({now,watchLive,showGuide=async()=>{}}) {
     if (event.key.toLowerCase()==='g') {event.preventDefault();await showGuide();viewport.focus();}
     if (event.key.toLowerCase()==='l') {event.preventDefault();watchLive();}
   });
-  setInterval(()=>{if (!document.hidden && time()!==null) {$('clock').textContent=timeText(time(),true);updateLive(time(),nextId);}},1000);
+  setInterval(()=>{if (!document.hidden && time()!==null) {$('clock').textContent=timeText(time());updateLive(time(),nextId);}},1000);
   setInterval(()=>{if (followLive && !loading && !document.hidden && !viewport.contains(document.activeElement)) {range=null;load();}},60000);
   load();
   return {updateLive,refresh:()=>load(),updateNow:(event,name)=>{if (name) channel=name;updateLive(time(),nextId);}};

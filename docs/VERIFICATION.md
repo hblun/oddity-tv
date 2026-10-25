@@ -1,5 +1,12 @@
 # Verification record — 24 October 2026
 
+## Stream-first viewer update
+
+The picture fills the viewport, with the guide hidden on arrival. Guide opens a floating card; close, outside click and Escape dismiss it and restore focus. Tune-in/live resume also dismiss the guide. Settings have their own popover, with secondary controls moved out of the main bar. Icon controls and the current title fade after inactivity; keyboard focus, pause and idle states keep controls available. Sans-serif programme titles and settings improve readability, with pixel accents and red selections retained. Pause and reconnect messages are shorter. Redundant theatre mode is removed because the default layout already fills the viewport. Motion respects the operating system's reduced-motion setting.
+
+Validation: all 22 Python tests and the JavaScript clock/schedule/control suites pass; JavaScript syntax, Python compilation and whitespace checks pass. The browser acceptance scripts now check the hidden guide, explicit opening, dismissal/focus return and the settings popover. Browser execution remains blocked: Chromium cannot launch in this sandbox and a local HTTP listener cannot bind. No screenshot or rendered mobile verification is claimed for this update.
+
+
 ## Retro red-button styling update
 
 The two-surface layout remains intact. Its skin now uses bundled VT323 pixel lettering, square red selection blocks, black/deep-blue panels, cyan clock/ruler text, yellow focus outlines and hard borders. Native subtitle text retains its sans-serif face. The original 153,116-byte font matches upstream Git blob `afa69098f15bf64849d397f133d9467486904053`; its complete SIL Open Font License accompanies the source and Docker image. The font route uses the correct MIME type and a one-day cache lifetime.
