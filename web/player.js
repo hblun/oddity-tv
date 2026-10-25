@@ -102,7 +102,6 @@ if (typeof document!=='undefined') {
   }
   function normalMessage(text) { if (performance.now()>=statusUntil) message(text); }
   function receiverState() {
-    $('receiver-state').textContent = session.paused ? 'Paused' : session.active ? 'Live' : 'Ready';
     $('transport-icon').textContent = session.running ? 'Ⅱ' : '▶';
     $('transport-label').textContent = session.running ? 'Pause' : 'Play live';
     $('transport').setAttribute('aria-label',session.running ? 'Pause on this screen; the channel continues' : 'Play at the current live broadcast position');
@@ -169,8 +168,7 @@ if (typeof document!=='undefined') {
   function toggleSound() { const silent=video.muted || video.volume===0; if (silent && video.volume===0) video.volume=.7; video.muted=!silent; updateSound(); }
   function pictureSettings() {
     $('tv-set').dataset.picture=preferences.picture; $('tv-set').dataset.captionSize=preferences.captionSize;
-    $('tv-set').classList.toggle('crt-on',preferences.crt);
-    $('picture').value=preferences.picture; $('caption-size').value=preferences.captionSize; $('crt').checked=preferences.crt;
+    $('picture').value=preferences.picture; $('caption-size').value=preferences.captionSize;
   }
   async function fullScreen() {
     try {
@@ -296,7 +294,6 @@ if (typeof document!=='undefined') {
   });
   $('picture').addEventListener('change',()=>{preferences.picture=$('picture').value; pictureSettings(); savePreferences();});
   $('caption-size').addEventListener('change',()=>{preferences.captionSize=$('caption-size').value; pictureSettings(); savePreferences();});
-  $('crt').addEventListener('change',()=>{preferences.crt=$('crt').checked; pictureSettings(); savePreferences();});
   $('info').addEventListener('click',()=>showInfo(true)); $('fullscreen').addEventListener('click',fullScreen);
   $('pip').hidden=!(document.pictureInPictureEnabled && video.requestPictureInPicture);
   $('pip').addEventListener('click',pictureInPicture);

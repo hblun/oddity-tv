@@ -1,4 +1,11 @@
-# Verification record — 24 October 2026
+# Verification record
+
+## Restrained, ruled interface treatment — 25 October 2026
+
+The stream-first layout, hidden guide, programme metadata and schedules are retained. The interface uses a single neutral sans-serif family, charcoal and slate surfaces, off-white text and limited state accents. Selected guide cells use a light/dark reversal; focus remains explicit. Pixel typography, the large standby glyph, decorative on-picture watermark and synthetic CRT option/filter are removed. Previously saved CRT preferences are ignored rather than silently reapplying the retired effect. A fading, non-interactive scrim supports readable now/next text and controls while they are visible. Programme names, descriptions, blocks and their supplied capitalisation are unchanged; no proposed strand titles or reference artwork are imported. Following research into Mast’s Innovation Endeavors identity, the desktop guide places block context beside a larger programme title/synopsis in a 1:3 grid, separated by fine rules. Mobile stacks those regions and keeps its guide header available while scrolling. The proportional timeline retains its own time-based scale. Research provenance and the lack of usable reference-image pixels are recorded in `docs/DESIGN_REFERENCES.md`.
+
+Verification: the 28 Python tests and JavaScript suites pass, including migration away from saved texture preferences. Syntax, HTML references/initial hidden states, CSS structure, source privacy and whitespace checks pass. Computed colour-pair contrast checks cover primary, secondary and selected guide text and focus against the relevant static surfaces; these are not a full accessibility audit. Browser acceptance now expects neutral guide type and retains playback, settings, subtitles, guide navigation, swipe and mobile overflow checks. Rendered browser/device checks remain unavailable in this environment, so visual fidelity and on-video contrast are not claimed as verified.
+
 
 ## Now/next, programming context and clip preparation
 

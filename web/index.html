@@ -4,7 +4,6 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark"><meta name="description" content="Watch Oddity Television live and browse the TV guide.">
   <title>Oddity Television — Live TV &amp; Guide</title>
-  <link rel="preload" href="/fonts/vt323.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/style.css"><script type="module" src="/player.js"></script>
 </head>
 <body>
@@ -16,9 +15,7 @@
         <div class="screen" id="screen">
           <video id="video" playsinline preload="auto" aria-label="Live Oddity Television broadcast"></video>
           <video id="preload-video" playsinline preload="auto" muted hidden aria-hidden="true"></video>
-          <div id="standby"><p><span class="station-mark">o.</span> ODDITY TELEVISION</p><button id="tune" class="primary">▶ Tune in</button></div>
-          <span class="watermark" aria-hidden="true">o.</span><span id="receiver-state" class="receiver-state">READY</span>
-          <div class="crt-overlay" aria-hidden="true"></div>
+          <div id="standby"><p>Oddity Television</p><button id="tune" class="primary">▶ Tune in</button></div>
           <div class="screen-info" id="screen-info" hidden><span class="osd-channel">01 <small>ODDITY TELEVISION</small></span><strong id="screen-title">Live television</strong><span id="screen-detail"></span></div>
           <div class="paused-overlay" id="paused-overlay" hidden><button id="resume-live" type="button" class="resume-button" aria-label="Resume at the live broadcast position"><span aria-hidden="true">▶</span></button><span>Paused</span><p>Resume joins live</p></div>
         </div>
@@ -39,7 +36,7 @@
         </div>
         <div class="receiver-settings" id="receiver-settings" hidden role="region" aria-label="Player settings">
           <header><strong>Settings</strong><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
-          <div class="settings-grid"><label>Picture<select id="picture"><option value="fit">Fit</option><option value="classic">4:3</option><option value="wide">16:9</option><option value="fill">Fill</option></select></label><label>Subtitles<select id="subtitle-track"><option value="off">Not available</option></select></label><label>Subtitle size<select id="caption-size"><option value="normal">Normal</option><option value="large">Large</option></select></label><label class="crt-setting"><input id="crt" type="checkbox"> CRT texture</label></div>
+          <div class="settings-grid"><label>Picture<select id="picture"><option value="fit">Fit</option><option value="classic">4:3</option><option value="wide">16:9</option><option value="fill">Fill</option></select></label><label>Subtitles<select id="subtitle-track"><option value="off">Not available</option></select></label><label>Subtitle size<select id="caption-size"><option value="normal">Normal</option><option value="large">Large</option></select></label></div>
           <p id="subtitle-status" class="sr-only"></p>
           <div class="extra-controls"><button id="info" type="button" aria-label="Show programme information" aria-pressed="false" title="Programme information (I)">Programme info</button><button id="pip" type="button" aria-label="Picture-in-picture" aria-pressed="false" hidden>Picture in picture</button></div>
         </div>
@@ -56,12 +53,16 @@
         <button id="guide-now" type="button">Now</button>
         <div class="guide-clock"><span id="guide-date"></span><time id="clock">--:--:--</time></div>
       </header>
+      <div class="guide-editorial">
       <div class="block-banner" id="block-banner" hidden><span id="detail-programming-title"></span><p id="detail-programming-description"></p></div>
+      <div class="programme-summary">
       <section class="programme-details" aria-labelledby="detail-title">
         <div class="selected-programme"><p id="detail-kind"></p><h2 id="detail-title">Loading guide…</h2><p><span id="detail-time"></span><span id="detail-block"></span></p></div>
         <button id="detail-watch" type="button" class="primary">Back to live</button>
       </section>
       <div class="programme-context"><p class="episode-meta" id="detail-episode" hidden></p><p id="detail-description" hidden></p><button id="description-more" type="button" aria-controls="detail-description" aria-expanded="false" hidden>More</button><div class="programme-tags" id="detail-tags" aria-label="Programme tags"></div></div>
+      </div>
+      </div>
       <div class="guide-navigation"><button id="guide-prev" type="button" aria-label="Earlier programmes">‹</button><span id="guide-window">Programme times</span><button id="guide-next" type="button" aria-label="Later programmes">›</button><button id="guide-refresh" type="button" aria-label="Refresh TV guide">↻</button><span id="guide-status" role="status" aria-live="polite">Loading…</span></div>
       <div class="guide-matrix">
         <div class="channel-rail"><span class="rail-heading">CH</span><button id="guide-channel" type="button" aria-label="Watch Oddity Television live"><span class="channel-number">01</span><strong id="guide-channel-name">Oddity Television</strong></button></div>

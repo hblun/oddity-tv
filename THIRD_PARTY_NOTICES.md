@@ -4,7 +4,7 @@
 
 Copyright 2011, The VT323 Project Authors (peter.hull@oikoi.com). SIL Open Font License 1.1. The unmodified font is bundled at `web/fonts/vt323.ttf`; the complete copyright/licence is in `vendor/vt323/OFL.txt` and included in the Docker image.
 
-Source: https://github.com/google/fonts/tree/main/ofl/vt323. Upstream `VT323-Regular.ttf` Git blob: `afa69098f15bf64849d397f133d9467486904053`. The downloaded binary was verified against that hash. It is served by the station, with no external font/CDN requests. Native subtitle text keeps its sans-serif face for readability.
+Source: https://github.com/google/fonts/tree/main/ofl/vt323. Upstream `VT323-Regular.ttf` Git blob: `afa69098f15bf64849d397f133d9467486904053`. The downloaded binary was verified against that hash. Earlier published revisions used this font for the retro interface. The neutral interface no longer references it; the bundled asset, compatibility route and licence are retained. There are no external font/CDN requests. Native subtitle text remains sans-serif.
 
 ## Ringmast4r-TV — ringmast4r
 

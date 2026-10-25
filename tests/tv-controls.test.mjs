@@ -31,8 +31,9 @@ test('preferences tolerate malformed or blocked storage and validate control val
   assert.equal(readPreferences({getItem(){return 'invalid json';}}).muted,true);
   const p=safePreferences({volume:999,picture:'not-an-option',captionSize:'huge',language:'<script>',crt:'yes',paused:true});
   assert.equal(p.volume,1); assert.equal(p.picture,'fit'); assert.equal(p.captionSize,'normal');
-  assert.equal(p.language,'en'); assert.equal(p.crt,false); assert.equal('paused' in p,false);
+  assert.equal(p.language,'en'); assert.equal('crt' in p,false); assert.equal('paused' in p,false);
   assert.equal(safePreferences({language:'es-419'}).language,'es-419');
+  assert.equal('crt' in safePreferences({crt:true}),false); // Retired texture cannot be restored from old storage.
 });
 
 test('next-clip preparation is bounded to the imminent boundary and respects data saver',async()=>{

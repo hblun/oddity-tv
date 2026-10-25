@@ -21,7 +21,7 @@ export function safePreferences(value) {
     muted:typeof p.muted==='boolean' ? p.muted : true,
     captions:p.captions===true, language:typeof p.language==='string' && p.language.length<=35 && /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/.test(p.language) ? p.language : 'en',
     picture:['fit','classic','wide','fill'].includes(p.picture) ? p.picture : 'fit',
-    captionSize:p.captionSize==='large' ? 'large' : 'normal', crt:p.crt===true};
+    captionSize:p.captionSize==='large' ? 'large' : 'normal'};
 }
 
 export function readPreferences(storage) {

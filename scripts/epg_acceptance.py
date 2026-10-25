@@ -28,7 +28,7 @@ async def run(url):
             await expect(page.locator('#guide-toggle')).to_have_attribute('aria-expanded','true')
             await expect(page.locator('.programme-button').first).to_be_visible()
             await page.evaluate('document.fonts.ready')
-            assert await page.evaluate('document.fonts.check(\'22px "Oddity Pixel"\')'), 'Pixel font did not load'
+            assert await page.locator('#guide-heading').evaluate('(e)=>!getComputedStyle(e).fontFamily.includes("Oddity Pixel")'), 'Guide must use neutral interface type'
             await expect(page.locator('main > section')).to_have_count(2)
             await expect(page.locator('footer,.masthead,.on-now')).to_have_count(0)
             await page.locator('#guide-close').click()

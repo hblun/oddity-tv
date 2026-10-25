@@ -48,7 +48,6 @@ async def run(url):
             await expect(page.locator('#settings-close')).to_be_focused()
             await page.locator('#picture').select_option('classic')
             await page.locator('#caption-size').select_option('large')
-            await page.locator('#crt').check()
             await expect(page.locator('#tv-set')).to_have_attribute('data-picture','classic')
             await expect(page.locator('#tv-set')).to_have_attribute('data-caption-size','large')
             await page.locator('#info').click()
@@ -74,7 +73,7 @@ async def run(url):
             await phone.screenshot(path=str(output/'tv-controls-mobile.png'),full_page=True)
             assert not errors,errors
             report={'status':'pass','checks':['native WebVTT cues','pause across boundary','resume at live position',
-                'volume','picture sizing','large captions','CRT preference','settings popover and focus return','programme OSD',
+                'volume','picture sizing','large captions','settings popover and focus return','programme OSD',
                 'full-screen controls when supported','preferences','no automatic playback after reload','mobile overflow'],
                 'page_errors':errors}
             (output/'tv-browser.json').write_text(json.dumps(report,indent=2));print(json.dumps(report,indent=2))
