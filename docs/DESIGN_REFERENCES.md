@@ -8,7 +8,8 @@ The station remains a stream with an on-demand guide. These references inform it
 
 Our interpretation: repetition of edges and rules makes diverse content feel intentional. Clear changes in type size establish priority without adding decorative UI. Distinctive imagery has room to work because the surrounding structure remains consistent.
 
-Applied here: the desktop guide gives block context one part and programme information three parts. The programme title has the strongest typographic emphasis; facts and tags remain secondary. Fine rules separate context, navigation and the timetable. Slate, off-white and restrained green state accents replace saturated retro decoration. The small screen stacks the same hierarchy, retaining readable controls and a sticky guide header. Timeline widths continue to represent real duration rather than obeying a decorative grid.
+Applied here: the guide is a warm paper programme sheet, with the selected work leading in large serif type. Block notes occupy a narrower adjacent column on desktop and follow the programme on mobile. Monospaced times/index labels, fine rules and a dark green channel rail give the information a consistent structure. A dark timetable selection reverses the surrounding paper. The playback surface stays ink-dark, with a square, ruled instrument strip and a clear Guide key. Timeline widths continue to represent real duration; no decorative grid overrides timing. These are our own adaptations, using local system fonts rather than the studio's typeface.
+
 
 ## NTS
 
