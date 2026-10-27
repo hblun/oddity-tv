@@ -57,12 +57,13 @@ async def run(url):
             await page.locator('#guide-now').click()
             await expect(page.locator('#guide-viewport')).to_have_attribute('aria-busy','false')
             await expect(page.locator('#guide-playhead')).to_be_visible()
-            await expect(page.locator('#guide-channel')).to_have_count(1)
+            await expect(page.locator('.channel-rail')).to_have_count(1)
             await page.screenshot(path=str(output/'epg-desktop.png'),full_page=True)
             count=await cells.count()
-            await page.route('**/api/guide?*',lambda route:route.abort())
-            await page.locator('#guide-refresh').click()
+            await page.route('**/api/blocks?*',lambda route:route.abort())
+            await page.locator('#guide-now').click()
             await expect(page.locator('#guide-status')).to_contain_text('Guide unavailable')
+            await expect(page.locator('#guide-refresh')).to_be_visible()
             assert await cells.count()==count
             await page.wait_for_function("!document.querySelector('#video').paused")
             mobile=await browser.new_context(viewport={'width':390,'height':844},is_mobile=True,reduced_motion='reduce')
@@ -74,9 +75,9 @@ async def run(url):
             await expect(phone.locator('.programme-button').first).to_be_visible()
             await phone.evaluate('document.fonts.ready')
             assert await phone.evaluate('document.documentElement.scrollWidth<=innerWidth'),'Page overflows horizontally'
-            left=await phone.locator('#guide-channel').bounding_box()
+            left=await phone.locator('.channel-rail').bounding_box()
             await phone.locator('#guide-viewport').evaluate('(e)=>{e.scrollLeft=400;}')
-            after=await phone.locator('#guide-channel').bounding_box()
+            after=await phone.locator('.channel-rail').bounding_box()
             assert abs(left['x']-after['x'])<1,'Channel rail must stay fixed while the timeline scrolls'
             await phone.screenshot(path=str(output/'epg-mobile.png'),full_page=True)
             handle=await phone.locator('#sheet-handle').bounding_box()

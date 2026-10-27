@@ -108,7 +108,7 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_public_surface_has_no_secrets_and_no_path_or_proxy_access(self):
         with patch.dict("os.environ", {"JELLYFIN_API_KEY": "PRIVATE_TEST_TOKEN", "JELLYFIN_URL": "http://private-jellyfin:8096"}):
-            for url in ["/", "/player.js", "/epg.js", "/tv-controls.js", "/channel-two-playback.js", "/style.css", "/api/channel", "/api/guide", "/guide.xml"]:
+            for url in ["/", "/player.js", "/epg.js", "/tv-controls.js", "/channel-two-playback.js", "/identity-motion.js", "/block-guide.js", "/style.css", "/api/channel", "/api/guide", "/guide.xml"]:
                 response = await self.client.get(url)
                 self.assertEqual(response.status_code, 200)
                 for private in ["PRIVATE_TEST_TOKEN", "private-jellyfin", str(self.station.root), "provenance", "X-Emby-Token"]:
@@ -142,6 +142,40 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(head.content, b'')
         self.assertEqual(head.headers['content-length'], response.headers['content-length'])
         self.assertEqual((await self.client.get('/fonts/unknown.ttf')).status_code, 404)
+
+    async def test_editorial_fonts_are_local_cacheable_and_explicitly_allowlisted(self):
+        for name in ('instrument-serif/InstrumentSerif-Regular.woff2',
+                     'instrument-serif/InstrumentSerif-Italic.woff2',
+                     'bricolage-grotesque/BricolageGrotesque.woff2', 'ibm-plex-mono/IBMPlexMono-Regular.woff2'):
+            with self.subTest(font=name):
+                response = await self.client.get(f'/fonts/{name}')
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.headers['content-type'], 'font/woff2')
+                self.assertTrue(response.content.startswith(b'wOF2'))
+                self.assertEqual(response.headers['cache-control'], 'public, max-age=86400')
+                head = await self.client.head(f'/fonts/{name}')
+                self.assertEqual(head.status_code, 200)
+                self.assertEqual(head.content, b'')
+                self.assertEqual(head.headers['content-length'], response.headers['content-length'])
+        for name in ('unknown.woff2', '../config/catalog.json', 'instrument-serif/OFL.txt'):
+            self.assertEqual((await self.client.get(f'/fonts/{name}')).status_code, 404)
+
+    async def test_archive_art_is_local_cacheable_and_explicitly_allowlisted(self):
+        for name in ('moon-walking.jpg','radio-hat.jpg'):
+            response=await self.client.get(f'/artwork/{name}')
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(response.headers['content-type'],'image/jpeg')
+            self.assertTrue(response.content.startswith(b'\xff\xd8'))
+            self.assertEqual(response.headers['cache-control'],'public, max-age=86400')
+            head=await self.client.head(f'/artwork/{name}')
+            self.assertEqual(head.status_code,200)
+            self.assertEqual(head.content,b'')
+            self.assertEqual(head.headers['content-length'],response.headers['content-length'])
+        self.assertEqual((await self.client.get('/artwork/sources.json')).status_code,404)
+        self.assertEqual((await self.client.get('/artwork/unknown.jpg')).status_code,404)
+        module=await self.client.get('/art-direction.js')
+        self.assertEqual(module.status_code,200)
+        self.assertIn('text/javascript',module.headers['content-type'])
 
     async def test_epg_pagination_has_no_missing_or_repeated_transmissions(self):
         now = self.station.origin + 65
@@ -179,7 +213,8 @@ class DeliveryTests(unittest.IsolatedAsyncioTestCase):
         with patch('station.app.time.time',return_value=now):
             result = await self.client.get('/api/guide')
             self.assertEqual(len(result.json()['events']),60)
-            self.assertLess(len(result.content),35000)
+            # Includes the demo's public synopses, captions and strand context.
+            self.assertLess(len(result.content),50000)
             for params in [{'limit':101},{'start':'nan'},{'start':now,'end':now-1},
                            {'start':now,'end':now+37*3600},{'start':now,'after':now-1},
                            {'q':'x'*101}]:

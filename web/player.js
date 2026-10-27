@@ -1,6 +1,8 @@
 // Shared-clock television, with local viewing controls and cached WebVTT tracks.
 import {playScheduledFile} from './channel-two-playback.js';
 import {createProgrammeGuide, timeText} from './epg.js';
+import {strandTheme} from './art-direction.js';
+import {createIdentityMotion} from './identity-motion.js';
 import {ViewingSession, chooseCaption, mountCaptions, readPreferences, safePreferences, preloadCandidate, programmeProgress} from './tv-controls.js';
 export class BroadcastClock {
   constructor() { this.anchor = null; this.mono = 0; }
@@ -19,7 +21,8 @@ if (typeof document!=='undefined') {
   const $ = id=>document.getElementById(id);
   let video = $('video'), buffer = $('preload-video');
   const clock = new BroadcastClock(), session = new ViewingSession();
-  let prepared=null;
+  let prepared=null, acquireOnPlaying=false, continuityId=null;
+  const motion=createIdentityMotion(window.matchMedia('(prefers-reduced-motion: reduce)'));
   let preferences = safePreferences(null);
   try { preferences = readPreferences(window.localStorage); } catch {}
   let epg = null, guide = null, current = null, loadedEvent = null, fetching = false, changingSource = false;
@@ -35,7 +38,7 @@ if (typeof document!=='undefined') {
   };
   function icon(button,name) { button.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name]}</svg>`; }
   icon($('settings-toggle'),'settings');icon($('fullscreen'),'fullscreen');
-  let controlsTimer=null, guideReturnFocus=null, settingsReturnFocus=null;
+  let controlsTimer=null, guideReturnFocus=null;
   function revealControls() {
     $('tv-set').classList.add('controls-visible');clearTimeout(controlsTimer);
     controlsTimer=setTimeout(()=>{
@@ -44,26 +47,36 @@ if (typeof document!=='undefined') {
     },3500);
   }
   function setSettings(open) {
-    if (open) settingsReturnFocus=document.activeElement;
+    const restoreFocus=!open && !$('receiver-settings').hidden;
     $('receiver-settings').hidden=!open;
     $('settings-toggle').setAttribute('aria-expanded',String(open));
     revealControls();
     if (open) $('settings-close').focus();
-    else if ($('receiver-settings').contains(document.activeElement)) settingsReturnFocus?.focus();
+    else if (restoreFocus) $('settings-toggle').focus();
   }
-  async function setGuide(open) {
+  async function setGuide(open, opener=$('guide-toggle')) {
+    // Use the actual opener: pointer clicks need not focus buttons in Safari.
+    const restoreFocus=!open && !$('programme-guide').hidden;
     if (open) {
-      guideReturnFocus=$('receiver-settings').contains(document.activeElement) ? $('guide-toggle') : document.activeElement;
+      guideReturnFocus=opener;
       if (document.fullscreenElement) await document.exitFullscreen();
       setSettings(false);
     }
     $('programme-guide').hidden=!open;$('guide-backdrop').hidden=!open;
     $('guide-toggle').setAttribute('aria-expanded',String(open));
-    if (open) $('guide-close').focus();
-    else { revealControls(); if ($('programme-guide').contains(document.activeElement) || document.activeElement===$('guide-backdrop')) (guideReturnFocus?.isConnected ? guideReturnFocus : $('guide-toggle')).focus(); }
+    if (open) { $('guide-close').focus(); epg?.revealLive(); }
+    else {
+      revealControls();
+      if (restoreFocus) {
+        const target=guideReturnFocus?.isConnected ? guideReturnFocus : $('guide-toggle');
+        // Let pointer dismissal finish before returning keyboard focus.
+        requestAnimationFrame(()=>{if ($('programme-guide').hidden) target.focus({preventScroll:true});});
+      }
+    }
   }
   $('guide-toggle').addEventListener('click',()=>setGuide($('programme-guide').hidden));
-  $('skip-guide').addEventListener('click',()=>setGuide(true));
+  $('viewing-block').addEventListener('click',async()=>{await setGuide(true,$('viewing-block'));epg?.showLive();});
+  $('skip-guide').addEventListener('click',()=>setGuide(true,$('skip-guide')));
   $('guide-close').addEventListener('click',()=>setGuide(false));
   let dragStart=null;
   $('sheet-handle').addEventListener('pointerdown',event=>{
@@ -109,6 +122,7 @@ if (typeof document!=='undefined') {
     $('tv-set').classList.toggle('is-paused',session.paused);
     $('tv-set').classList.toggle('is-idle',!session.active);
     $('live').classList.toggle('is-paused',session.paused);
+    $('programme-guide').dataset.viewing=session.running ? 'live' : 'idle';
   }
   function blocked(error) {
     if (session.paused || error?.name==='AbortError') return;
@@ -137,14 +151,10 @@ if (typeof document!=='undefined') {
       captionOptionsKey = key;
     }
     $('subtitle-track').value = preferences.captions && selected ? selected.id : 'off';
-    $('captions').disabled = !tracks.length;
-    $('captions').setAttribute('aria-pressed',String(preferences.captions && !!selected));
-    $('captions').setAttribute('aria-label',tracks.length ? `Turn subtitles ${preferences.captions ? 'off' : 'on'}` : 'No subtitles supplied for this transmission');
-    $('captions').title = tracks.length ? `Subtitles ${preferences.captions ? 'on' : 'off'} (C)` : 'No subtitles supplied for this transmission';
     $('subtitle-status').textContent = tracks.length ? `${tracks.length} subtitle track${tracks.length===1 ? '' : 's'} supplied. Your choice carries over between programmes.` : 'No subtitles supplied for this transmission. Your preference is kept for the next programme.';
   }
   function toggleCaptions() {
-    if ($('captions').disabled) { message('Subtitles unavailable',4000); return; }
+    if (!(loadedEvent?.captions || current?.captions || []).length) { message('Subtitles unavailable',4000); return; }
     preferences.captions = !preferences.captions; applyCaptions(); savePreferences();
     message(`Subtitles ${preferences.captions ? 'on' : 'off'}.`,3000);
   }
@@ -152,6 +162,7 @@ if (typeof document!=='undefined') {
     clearTimeout(infoTimer);
     if (toggle && !$('screen-info').hidden) { $('screen-info').hidden=true; $('info').setAttribute('aria-pressed','false'); return; }
     const event = loadedEvent || current;
+    $('screen-info').dataset.theme=strandTheme(event || {});
     $('screen-title').textContent = event?.title || 'The independent service';
     $('screen-detail').textContent = event ? `${timeText(event.start,true)}–${timeText(event.end,true)} · ${event.kind.replaceAll('-',' ')}${session.paused ? ' · Paused locally' : ''}` : 'Tune in to join the live service.';
     $('screen-info').hidden = false; $('info').setAttribute('aria-pressed','true');
@@ -231,7 +242,7 @@ if (typeof document!=='undefined') {
   }
   function tick() {
     const now=clock.now(); if (now===null) return;
-    $('clock').textContent=timeText(now);
+    $('clock').textContent=timeText(now,true);
     const next=[guide?.now,...(guide?.upcoming || [])].find(e=>e && e.start>now);
     epg?.updateLive(now,next?.id);
     const event=eventAt(guide,now), changed=event?.id!==current?.id;
@@ -239,9 +250,18 @@ if (typeof document!=='undefined') {
     if (changed) render(event);
     if (session.shouldLoad(event)) loadTransmission(event);
     const shown=session.paused ? loadedEvent : event;
+    $('tv-set').dataset.theme=strandTheme(shown || {});
+    if (shown?.id!==continuityId) {
+      continuityId=shown?.id;
+      // One wipe per real transmission change, rather than every metadata poll.
+      if (session.active) motion.play('wipe',document.querySelector('.viewing-now'),'continuity');
+    }
     $('programme-progress').value=programmeProgress(shown,session.paused ? pausedAt : now);
     const upcoming=[guide?.now,...(guide?.upcoming || [])].find(e=>e && e.start>=(shown?.end ?? now));
-    $('viewing-block').textContent=shown?.programming?.title || '';
+    const collection=shown?.programming?.collection;
+    $('viewing-block').textContent=shown?.programming ? `${collection ? collection.title+' · Block '+collection.part+': ' : ''}${shown.programming.title} ↗` : '';
+    $('viewing-block').dataset.collectionTheme=collection?.theme || '';
+    $('viewing-block').setAttribute('aria-label',shown?.programming ? `Explore ${collection ? collection.title+", Block "+collection.part+": " : "programming block: "}${shown.programming.title}` : 'Explore programming block');
     $('viewing-block').hidden=!shown?.programming;
     $('viewing-next').hidden=!upcoming;
     $('next-title').textContent=upcoming?.title || '';
@@ -271,12 +291,17 @@ if (typeof document!=='undefined') {
       const response=await fetch('/api/channel?hours=0.25',{cache:'no-store',signal:AbortSignal.timeout(5000)});
       if (!response.ok) throw new Error('Guide unavailable');
       const data=await response.json(),end=performance.now();
+      const contentChanged=guide && guide.content_revision!==data.content_revision;
       clock.update(data.server_time,start,end); guide=data; lastSuccess=end;
+      const refreshedLoaded=[data.now,...data.upcoming].find(event=>event?.id===loadedEvent?.id);
+      if (refreshedLoaded) loadedEvent=refreshedLoaded;
       tick(); render(eventAt(guide,clock.now()));
+      if (contentChanged) {epg?.refresh();if (!$('screen-info').hidden) showInfo();}
     } catch { message('Reconnecting…'); }
     finally {fetching=false;}
   }
   function watchLive() {
+    if (!session.active) acquireOnPlaying=true;
     session.tune(); pausedAt=null; receiverState(); revealControls(); setGuide(false); setSettings(false); $('standby').hidden=true;
     tick(); if (!guide) message('Connecting…'); refresh();
   }
@@ -286,7 +311,6 @@ if (typeof document!=='undefined') {
   $('transport').addEventListener('click',togglePlayback); $('live').addEventListener('click',watchLive);
   $('sound').addEventListener('click',toggleSound);
   $('volume').addEventListener('input',()=>{video.volume=Number($('volume').value)/100; video.muted=video.volume===0; updateSound();});
-  $('captions').addEventListener('click',toggleCaptions);
   $('subtitle-track').addEventListener('change',()=>{
     selectedCaptionId=$('subtitle-track').value; preferences.captions=selectedCaptionId!=='off';
     const selected=(loadedEvent?.captions || current?.captions || []).find(t=>t.id===selectedCaptionId);
@@ -311,6 +335,7 @@ if (typeof document!=='undefined') {
       if (element!==video) return;
       if (session.paused) {video.pause();return;}
       changingSource=false;$('standby').hidden=true;receiverState();
+      if (acquireOnPlaying) {acquireOnPlaying=false;motion.play('aperture',$('screen'),'acquisition');}
     });
     element.addEventListener('ended',()=>{if (element===video) tick();});
   }

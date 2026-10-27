@@ -32,6 +32,9 @@ class Event:
     block_tags: tuple = ()
     block_start: float | None = None
     block_end: float | None = None
+    item_index: int | None = None
+    continuity_start: float | None = None
+    continuity_end: float | None = None
 
 
 class Schedule:
@@ -120,15 +123,16 @@ class Schedule:
         title = text(definition.get("title", "Programme"), 200)
         if not block["items"]:
             raise ValueError("Empty programming block")
-        for item in (chunk for authored in block["items"] for chunk in content_chunks(authored, self.assets)):
-            key = item["asset"]
-            total = float(self.assets[key]["duration"])
-            source = float(item.get("in", 0))
-            duration = positive(item.get("duration", total - source), "item duration")
-            if not math.isfinite(source) or source < 0 or source + duration > total + .001:
-                raise ValueError(f"Scheduled excerpt exceeds asset {key}")
-            events.append(Event(key, start, start + duration, source, title))
-            start += duration
+        for item_index, authored in enumerate(block["items"]):
+            for item in content_chunks(authored, self.assets):
+                key = item["asset"]
+                total = float(self.assets[key]["duration"])
+                source = float(item.get("in", 0))
+                duration = positive(item.get("duration", total - source), "item duration")
+                if not math.isfinite(source) or source < 0 or source + duration > total + .001:
+                    raise ValueError(f"Scheduled excerpt exceeds asset {key}")
+                events.append(Event(key, start, start + duration, source, title, item_index=item_index))
+                start += duration
         return [replace(event, block_id=profile, block_description=text(definition.get("description")),
                         block_tags=tuple(tags(definition.get("tags", []))),
                         block_start=block_start, block_end=start) for event in events]
@@ -193,7 +197,7 @@ class Schedule:
                     skip = max(0, math.floor((start - event.end) / duration))
                     for filler in self.fill(event.end + skip * duration, min(gap_end, end)):
                         if filler.end > start:
-                            events.append(filler)
+                            events.append(replace(filler, continuity_start=event.end, continuity_end=gap_end))
         return sorted(events, key=lambda e: e.start)
 
     def public(self, event):
@@ -205,7 +209,7 @@ class Schedule:
             "tags": list(event.block_tags), "start": event.block_start, "end": event.block_end}
         return {**metadata, "programming": programming, "id": f"{event.start:.3f}:{event.asset}", "asset": event.asset,
                 "title": asset["title"], "kind": asset.get("kind", "programme"),
-                "block": event.block, "start": event.start, "end": event.end,
+                "block": event.block, "start": event.start, "end": event.end, "entry_index": event.item_index,
                 "source_in": event.source_in, "source_duration": float(asset["duration"]), "url": f"/media/{event.asset}.mp4",
                 "captions": [{"id": t["id"], "language": t.get("language", "und"),
                               "label": t.get("label", t.get("language", "Subtitles")), "default": t.get("default", False),

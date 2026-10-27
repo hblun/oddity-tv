@@ -26,6 +26,9 @@ class MetadataTests(unittest.TestCase):
             'description': 'Source synopsis', 'series': 'Night films', 'season': 1, 'episode': 2,
             'year': 1982, 'tags': ['Archive', 'British'], 'genres': ['Drama'], 'Path': '/private/home'},
             description='<p>An admin introduction.</p><script>secret()</script>', jellyfin_id='private-item-id')
+        # The current demo supplies editorial tags. This fixture exercises the
+        # source-tag fallback, so it must explicitly remove that override.
+        self.catalog['assets']['feature'].pop('tags', None)
 
     def test_block_context_survives_adverts_and_resume_with_stable_boundaries(self):
         station = Schedule(self.config, self.catalog, self.base.root)

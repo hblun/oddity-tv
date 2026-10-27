@@ -15,63 +15,83 @@
         <div class="screen" id="screen">
           <video id="video" playsinline preload="auto" aria-label="Live Oddity Television broadcast"></video>
           <video id="preload-video" playsinline preload="auto" muted hidden aria-hidden="true"></video>
-          <div id="standby"><p>Oddity Television</p><button id="tune" class="primary">▶ Tune in</button></div>
+          <div id="standby"><div class="standby-index" aria-hidden="true"><span>01</span><span>Live television</span></div><p><span>Oddity</span> <em>Television</em></p><button id="tune" class="primary">▶ Tune in</button></div>
           <div class="screen-info" id="screen-info" hidden><span class="osd-channel">01 <small>ODDITY TELEVISION</small></span><strong id="screen-title">Live television</strong><span id="screen-detail"></span></div>
           <div class="paused-overlay" id="paused-overlay" hidden><button id="resume-live" type="button" class="resume-button" aria-label="Resume at the live broadcast position"><span aria-hidden="true">▶</span></button><span>Paused</span><p>Resume joins live</p></div>
         </div>
-        <div class="viewing-now" aria-hidden="true"><span class="block-label" id="viewing-block" hidden></span><div class="now-line"><span class="on-air-dot"></span><span id="viewing-title">Oddity Television</span></div><progress id="programme-progress" max="1" value="0"></progress><div class="next-programme" id="viewing-next" hidden>Next <span id="next-title"></span><span id="next-time"></span></div></div>
+        <div class="viewing-now"><button type="button" class="block-label" id="viewing-block" title="Explore this programming block" hidden></button><div class="now-line"><span class="on-air-dot"></span><span id="viewing-title">Oddity Television</span></div><progress id="programme-progress" max="1" value="0"></progress><div class="next-programme" id="viewing-next" hidden>Next <span id="next-title"></span><span id="next-time"></span></div></div>
         <div class="tv-remote" role="group" aria-label="Television controls">
           <div class="transport-controls">
             <button id="transport" type="button" aria-label="Play live television" title="Play / pause (Space)"><span aria-hidden="true" id="transport-icon">▶</span><span class="sr-only" id="transport-label">Play live</span></button>
             <button id="sound" type="button" aria-label="Turn sound on" title="Sound (M)"></button>
-            <label class="volume-control"><span class="sr-only">Volume</span><input id="volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume"></label>
-            <button id="live" type="button" class="live-control" aria-label="Rejoin the live broadcast" title="Rejoin live (L)"><span class="dot"></span><span class="live-label">LIVE</span></button>
           </div>
           <div class="screen-controls">
             <button id="guide-toggle" class="guide-toggle" type="button" aria-label="TV guide" aria-expanded="false" aria-controls="programme-guide" title="TV guide (G)"><span class="guide-icon" aria-hidden="true"></span><span>Guide</span></button>
-            <button id="captions" type="button" aria-label="Turn subtitles on" aria-pressed="false" title="Subtitles (C)" disabled>CC</button>
             <button id="settings-toggle" type="button" aria-label="Picture and sound settings" aria-expanded="false" aria-controls="receiver-settings" title="Settings"></button>
             <button id="fullscreen" type="button" aria-label="Enter full screen" title="Full screen (F)"></button>
           </div>
         </div>
         <div class="receiver-settings" id="receiver-settings" hidden role="region" aria-label="Player settings">
           <header><strong>Settings</strong><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
-          <div class="settings-grid"><label>Picture<select id="picture"><option value="fit">Fit</option><option value="classic">4:3</option><option value="wide">16:9</option><option value="fill">Fill</option></select></label><label>Subtitles<select id="subtitle-track"><option value="off">Not available</option></select></label><label>Subtitle size<select id="caption-size"><option value="normal">Normal</option><option value="large">Large</option></select></label></div>
+          <div class="settings-grid"><label class="settings-volume">Volume<input id="volume" type="range" min="0" max="100" step="1" value="70" aria-label="Volume"></label><label>Picture<select id="picture"><option value="fit">Fit</option><option value="classic">4:3</option><option value="wide">16:9</option><option value="fill">Fill</option></select></label><label>Subtitles<select id="subtitle-track"><option value="off">Not available</option></select></label><label>Subtitle size<select id="caption-size"><option value="normal">Normal</option><option value="large">Large</option></select></label></div>
           <p id="subtitle-status" class="sr-only"></p>
-          <div class="extra-controls"><button id="info" type="button" aria-label="Show programme information" aria-pressed="false" title="Programme information (I)">Programme info</button><button id="pip" type="button" aria-label="Picture-in-picture" aria-pressed="false" hidden>Picture in picture</button></div>
+          <div class="extra-controls"><button id="live" type="button" class="live-control" aria-label="Rejoin the live broadcast" title="Rejoin live (L)"><span class="dot"></span>Rejoin live</button><button id="info" type="button" aria-label="Show programme information" aria-pressed="false" title="Programme information (I)">Programme info</button><button id="pip" type="button" aria-label="Picture-in-picture" aria-pressed="false" hidden>Picture in picture</button></div>
         </div>
         <p id="status" class="player-status" role="status" aria-live="polite"></p>
         </div>
       </section>
 
     <button class="guide-backdrop" id="guide-backdrop" type="button" aria-label="Close TV guide" tabindex="-1" hidden></button>
-    <section class="programme-guide" id="programme-guide" aria-labelledby="guide-heading" hidden>
+    <section class="programme-guide" id="programme-guide" aria-labelledby="guide-heading" data-theme="cobalt" hidden>
       <div class="sheet-handle" id="sheet-handle" aria-hidden="true"></div>
       <header class="guide-header">
-        <h1 id="guide-heading">TV Guide</h1><button id="guide-close" type="button" aria-label="Close TV guide">×</button>
-        <div class="guide-days" role="group" aria-label="Guide day"><button type="button" data-period="today" aria-pressed="true">Today</button><button type="button" data-period="tomorrow" aria-pressed="false">Tomorrow</button></div>
-        <button id="guide-now" type="button">Now</button>
+        <h1 id="guide-heading" class="sr-only">TV Guide</h1>
+        <span class="guide-imprint" aria-hidden="true"><b>Oddity</b><em>Television</em></span>
         <div class="guide-clock"><span id="guide-date"></span><time id="clock">--:--:--</time></div>
+        <button id="guide-close" type="button" aria-label="Close TV guide">×</button>
       </header>
-      <div class="guide-editorial">
-      <div class="block-banner" id="block-banner" hidden><span id="detail-programming-title"></span><p id="detail-programming-description"></p></div>
-      <div class="programme-summary">
-      <section class="programme-details" aria-labelledby="detail-title">
-        <div class="selected-programme"><p id="detail-kind"></p><h2 id="detail-title">Loading guide…</h2><p><span id="detail-time"></span><span id="detail-block"></span></p></div>
-        <button id="detail-watch" type="button" class="primary">Back to live</button>
+      <section id="collection-panel" class="collection-panel" hidden aria-labelledby="collection-title">
+        <button id="collection-back" type="button">← Back to guide</button>
+        <p class="collection-label">Collection</p><h2 id="collection-title" tabindex="-1"></h2><p id="collection-description"></p>
+        <p id="collection-message" role="status" hidden></p><button id="collection-retry" type="button" hidden>Retry collection</button>
+        <ol id="collection-blocks" aria-label="Blocks in this collection"></ol>
       </section>
-      <div class="programme-context"><p class="episode-meta" id="detail-episode" hidden></p><p id="detail-description" hidden></p><button id="description-more" type="button" aria-controls="detail-description" aria-expanded="false" hidden>More</button><div class="programme-tags" id="detail-tags" aria-label="Programme tags"></div></div>
-      </div>
-      </div>
-      <div class="guide-navigation"><button id="guide-prev" type="button" aria-label="Earlier programmes">‹</button><span id="guide-window">Programme times</span><button id="guide-next" type="button" aria-label="Later programmes">›</button><button id="guide-refresh" type="button" aria-label="Refresh TV guide">↻</button><span id="guide-status" role="status" aria-live="polite">Loading…</span></div>
-      <div class="guide-matrix">
-        <div class="channel-rail"><span class="rail-heading">CH</span><button id="guide-channel" type="button" aria-label="Watch Oddity Television live"><span class="channel-number">01</span><strong id="guide-channel-name">Oddity Television</strong></button></div>
-        <div id="guide-viewport" class="guide-viewport" role="region" aria-label="Programme timeline; scroll for later times" tabindex="0">
-          <div id="guide-canvas" class="guide-canvas"><div id="guide-times" class="guide-times" aria-hidden="true"></div><ol id="guide" aria-label="Oddity Television broadcast schedule"></ol><div id="guide-playhead" class="guide-playhead" aria-hidden="true"><span>Now</span></div></div>
-          <p id="guide-empty" class="guide-empty" hidden>No programmes available in this window. Try Now or refresh the guide.</p>
+      <div id="block-panel">
+      <button id="back-to-schedule" type="button" hidden>← Back to live guide</button>
+      <div class="guide-editorial">
+        <figure class="programme-art" id="programme-art">
+          <div class="art-window"><img id="detail-art" src="/artwork/moon-walking.jpg" alt="A subject suspended sideways in NASA’s Moon-walking simulator." width="525" height="394" decoding="async"></div>
+          <figcaption><span id="art-title" class="sr-only">Simulating a Moon walk</span><a id="art-credit" href="https://www.nasa.gov/centers-and-facilities/langley/50-years-ago-the-lunar-landing-research-facility/" target="_blank" rel="noopener noreferrer">NASA / Langley</a></figcaption>
+        </figure>
+        <div class="programme-summary">
+          <section class="programme-details" aria-labelledby="detail-title">
+            <div class="selected-meta"><span id="detail-kind"></span><span id="detail-time"></span></div>
+            <div id="collection-identity" class="collection-identity" hidden><span class="collection-kicker">Collection</span><button id="collection-link" type="button" hidden></button><div id="collection-parts" class="collection-parts" aria-label="Blocks in this collection"></div></div><p id="block-number" class="block-number" hidden></p><h2 id="detail-title" tabindex="-1">Loading blocks…</h2><p id="detail-premise" hidden></p>
+          </section>
+          <div class="programme-context"><p id="detail-description" hidden></p><button id="description-more" type="button" aria-controls="detail-description" aria-expanded="false" hidden>More</button></div>
+          <button id="detail-watch" type="button" class="primary" aria-label="Close guide and join the live broadcast">Join live <span aria-hidden="true">↗</span></button>
         </div>
       </div>
-      <div class="guide-shortcuts" id="guide-shortcuts" role="group" aria-label="Short clips in this window"></div>
+      <div id="schedule-panel">
+      <div class="guide-navigation">
+        <div class="guide-day-controls"><div class="guide-days" role="group" aria-label="Guide day"><button type="button" data-period="today" aria-pressed="true">Today</button><button type="button" data-period="tomorrow" aria-pressed="false">Tomorrow</button></div><button id="guide-now" type="button">Now</button><button id="collections-toggle" type="button" hidden>Collections</button></div>
+        <div class="guide-zoom" role="group" aria-label="Timeline scale"><button id="guide-three-hours" type="button" aria-pressed="true">3 hours</button><button id="guide-full-day" type="button" aria-pressed="false">Full day</button></div>
+        <div class="guide-window-controls"><button id="guide-prev" type="button" aria-label="Earlier programmes">‹</button><span id="guide-window">Programme times</span><button id="guide-next" type="button" aria-label="Later programmes">›</button><button id="guide-refresh" type="button" aria-label="Retry TV guide" hidden>Retry</button></div>
+        <span id="preview-clock-label" hidden></span><span id="guide-status" class="sr-only" role="status" aria-live="polite">Loading…</span>
+      </div>
+      <div class="guide-matrix">
+        <div class="channel-rail" aria-hidden="true"><span class="channel-number">01</span><span class="lane-label">Blocks</span><span class="lane-label">Programmes</span></div>
+        <div id="guide-viewport" class="guide-viewport" role="region" aria-label="Programming blocks; scroll for later times" tabindex="0">
+          <div id="guide-canvas" class="guide-canvas"><div id="guide-times" class="guide-times" aria-hidden="true"></div><ol id="guide" aria-label="Oddity Television programming blocks"></ol><ol id="work-layer" aria-label="Programmes within the blocks"></ol><div id="guide-playhead" class="guide-playhead" aria-hidden="true"><span>Now</span></div></div>
+          <p id="guide-empty" class="guide-empty" hidden>No blocks available in this window. Try Now or refresh the guide.</p>
+        </div>
+      </div>
+      </div>
+      <section class="block-running-order" aria-labelledby="running-order-heading">
+        <div class="running-order-header"><h3 id="running-order-heading">Inside this block</h3><div class="running-order-totals"><span id="running-duration"></span><span id="work-count"></span></div></div>
+        <ol id="block-works" aria-label="Block running order"></ol>
+      </section>
+      </div>
     </section>
   </main>
 </body>

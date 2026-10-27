@@ -91,7 +91,19 @@ docker compose restart station
 
 This only touches assets marked as the original synthetic demo. It does not generate speech transcripts, translate subtitles or invent subtitles for real programmes. Previously imported assets whose subtitles were stripped need a supplied sidecar or a fresh import from the original source with a new asset ID.
 
-## Programme the channel
+## Oddity Studio: content and scheduling
+
+The lightweight local editor runs on **SQLite**. It manages programme records, block running orders, weekly/repeating slots, collections, media readiness and simple fill rules. Its visual schedule shows gaps and overlaps, supports timed drag-and-drop placement, and opens a block chooser from a gap. Drafts and saved revisions remain separate from published content. No user accounts are required.
+
+```sh
+.venv/bin/uvicorn station.studio:app --host 127.0.0.1 --port 8001 --no-access-log --no-server-header --no-proxy-headers
+```
+
+Open **http://127.0.0.1:8001/**. First use imports the existing configuration into `config/studio.sqlite3`. Save draft, then Publish to update the running station and EPG without a restart. The public player stays on port 8000 and has no editor endpoints. [Studio instructions and data model](docs/STUDIO.md) cover media matching, publishing and recovery.
+
+## Programme the channel with configuration files
+
+These are the bootstrap and CLI workflows. Once Studio has published, its `published.json` snapshot takes precedence; make subsequent editorial and scheduling changes in Studio and republish.
 
 Edit `config/schedule.json`, using the asset IDs in `config/catalog.json`. An item plays its full measured duration unless `in` and/or `duration` selects an excerpt. An advert inserted between two excerpts pauses the **programme timeline** for all viewers together:
 
@@ -118,11 +130,13 @@ docker compose --profile tools run --rm tools validate
 docker compose restart station
 ```
 
-The server loads a snapshot at startup; there are no public write/admin endpoints or hot reload. Replacing the schedule is the manual override mechanism in this slice. Changes reach viewers on the next guide refresh, normally within ten seconds. For special dated broadcasts, supply a dedicated cycle configuration with the intended origin; a full exceptions/calendar editor is deferred.
+Without a Studio publication, the server loads schedule and media snapshots at startup and editorial JSON/Markdown hot reloads separately. Studio publications replace all three together without restarting. There are no public write/admin endpoints. Replacing the schedule is the manual override mechanism in this slice. Changes reach viewers on the next guide refresh, normally within ten seconds. For special dated broadcasts, supply a dedicated cycle configuration with the intended origin; a full exceptions/calendar editor is deferred.
 
 ## Delivery and synchronisation
 
 ### Programming identities and descriptions
+
+**Studio stores published editorial content in SQLite.** Its Publish action updates the live player and EPG together. For the original configuration-file workflow, editorial changes live in **`config/content.json`**, with longer descriptions in **`config/descriptions/*.md`**. Save valid copy, tag, palette or placeholder-artwork edits and the player/guide pick them up on the next metadata poll, normally within ten seconds. A failed save keeps the last valid content. The catalogue still supplies cached Jellyfin metadata and media details; the schedule supplies broadcast order and timings. Changes to those two underlying files still require validation and a station restart. [The programming guide](docs/PROGRAMMING.md#live-editorial-content-json-and-markdown) documents fields, examples and precedence.
 
 Give recurring slots a reusable identity such as **Saturday Morning Cartoons** or **Past Watershed Strangeness**. Named block profiles carry a title, introduction and tags through programmes, adverts and resumptions. Viewers see the block label with now/next and its introduction in the guide. Programme descriptions and episode/year details come from cached Jellyfin metadata, with private refresh and admin overrides; local/archive assets support the same editorial fields. See [the programming guide](docs/PROGRAMMING.md) for configuration, import, refresh and override commands.
 
@@ -130,11 +144,17 @@ Give recurring slots a reusable identity such as **Saturday Morning Cartoons** o
 
 The stream fills the screen. **Guide** opens a floating programme card without stopping playback; close it with ×, Escape or a tap outside. **G** opens the guide from the picture. The guide has a fixed channel column, horizontal time ruler, duration-proportional programme cells and selected-programme details. There is no site masthead or footer.
 
-The player uses an ink-dark viewing surface and a square, ruled control strip. The guide opens as a warm paper programme sheet, with large serif programme titles, precise monospaced facts and a dark green channel index and selection state. Programme names retain their supplied capitalisation; the programming and descriptions carry the editorial identity. The now/next overlay adds current programme progress, block identity and the next transmission/time. It fades with the controls. On mobile, the guide has a swipe-down handle and larger buttons for short clips. The compact icon controls fade away after inactivity and return on pointer movement, a picture tap or keyboard focus. The settings popover holds picture framing, subtitle tracks/sizes, programme information and picture-in-picture. All animations respect reduced-motion preferences. There are no external font requests, decorative watermarks or synthetic picture textures. A fading control scrim supports readable labels against the video. [Design references and their application](docs/DESIGN_REFERENCES.md) explain the guide’s composition and typographic hierarchy.
+The player has five main controls: play/pause, sound, Guide, Settings and full screen. Settings holds volume, subtitle track/size, picture framing, rejoin live, programme information and picture-in-picture. Controls fade after inactivity and return on movement, a picture tap or keyboard focus. C still toggles available subtitles from the picture. The now/next overlay retains strand identity and programme progress.
 
-**Today** opens near the current transmission. **Tomorrow** opens at the next British midnight. The earlier/later arrows move through time windows and **Now** returns the guide to the current transmission. Selecting a programme changes its information, while the stream continues. Left/right arrow keys move between programme cells. “Back to live” and the channel button join the current broadcast.
+The guide has **two aligned timeline layers**: programming blocks above and their individual programmes/works below. Collection names and shared colour labels sit above numbered blocks. Select a block to read its premise and complete ordered contents; select a work to expand its details in place. The list includes the whole block, even when the visible timetable covers only part of it. An interrupted film stays one authored work, with its break and continuation shown as segments. The now/next strand label also opens block exploration.
 
-Normal films use a two-hour view with half-hour columns. Short programmes use a 20-minute view; the synthetic demonstration uses two minutes with 30-second columns so its short clips remain selectable. These scales preserve actual programme durations and do not change broadcast timing. Cells continuing beyond the visible window have edge indicators. Small advert/ident cells use short labels; selection reveals their full titles and times. The mobile timeline scrolls horizontally while the channel rail stays fixed.
+Collections are optional context through a text link and the Collections button; they have no third timeline lane. The supplied **he's turned the weans against you** treatment is included as a programme collection: three three-hour blocks and 30 works, using relative 00:00–09:00 programme time. Its unscheduled blocks use relative times and have no play action or live playhead. The existing synthetic demo remains the actual broadcast. Back to live guide restores the scheduled view. Reading another block never retunes the picture.
+
+Bricolage Grotesque headings, Instrument Serif signatures, monospaced facts, changing transmission colours, real monochrome archive photographs and translucent panels preserve the graphic style. Local fonts avoid external requests. Archive source credits remain visible. A first-picture aperture and brief information wipe settle completely and respect reduced motion; the header clock and timetable marker follow real broadcast time. Reduced transparency receives solid panels. [The design system](docs/DESIGN_SYSTEM.md) records the rules, with sources in [design references](docs/DESIGN_REFERENCES.md).
+
+**Today** opens near the current transmission. **Tomorrow** opens at the next British midnight. Earlier/later arrows move through time windows; **Now** returns to the current transmission. Selection changes the programme information while playback continues. Left/right arrow keys move between cells. Watch live closes the guide and joins the current broadcast.
+
+The guide defaults to a three-hour window with half-hour divisions. **Full day** shows the selected British calendar day. Collection pages use relative time and initially focus on the selected block's three-hour window. The running order uses numbered programme panels, larger feature entries and proportionate duration bars. These display choices retain actual durations. The mobile timetable pans horizontally while the lane labels stay fixed.
 
 All dates use `Europe/London`, including clock-change days. A live playhead and on-air status follow the shared clock. The default view follows live until you select or scroll through programmes. **Now** restores following; day/time browsing holds the chosen window. **G** opens the card and focuses the timeline. Closing restores focus to the opening control. **L** rejoins the live stream. A failed guide refresh keeps the previous cells visible and leaves playback running.
 
@@ -184,8 +204,11 @@ With the generated demo present:
 ```sh
 python -m station.cli validate
 python -m unittest discover -s tests -v
-node --test tests/*.test.mjs
+npm ci
+npm test
 ```
+
+The DOM flow tests use jsdom as a development-only dependency; use Node.js 26+ for these checks. The public Python station has no Node.js dependency.
 
 Tests cover contiguous schedules, midway joins, advert/resume boundaries, filler phase, restart stability, British DST evening slots, invalid schedules, path traversal, HTTP ranges/HEAD, two independent HTTP clients, public-data isolation and mock Jellyfin pagination/prefetch/redirect rejection. JavaScript tests cover two independent clock anchors and cached-guide transitions.
 

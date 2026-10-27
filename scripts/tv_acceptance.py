@@ -21,11 +21,13 @@ async def run(url):
         page.on('pageerror',lambda error: errors.append(str(error)))
         try:
             await page.goto(url)
-            await expect(page.locator('#detail-title')).not_to_have_text('Loading guide…')
+            await expect(page.locator('#detail-title')).not_to_have_text('Loading blocks…')
             await page.locator('#tune').click()
             await page.wait_for_function("document.querySelector('#video').readyState>=2 && !document.querySelector('#video').paused")
-            await expect(page.locator('#captions')).to_be_enabled()
-            await page.locator('#captions').click()
+            await expect(page.locator('.tv-remote button')).to_have_count(5)
+            await page.locator('#settings-toggle').click()
+            await page.locator('#subtitle-track').select_option(index=1)
+            await page.locator('#settings-close').click()
             await page.wait_for_function("[...document.querySelector('#video').textTracks].some(t=>t.mode==='showing' && t.activeCues?.length>0)")
             data=await (await context.request.get(url.rstrip('/')+'/api/channel?hours=0.01')).json()
             await page.locator('#transport').click()
@@ -42,9 +44,9 @@ async def run(url):
             if live['now']['end']-live['server_time']>1:
                 assert actual['src'].endswith(live['now']['url'])
                 assert abs(actual['time']-(live['now']['source_in']+live['server_time']-live['now']['start']))<2
+            await page.locator('#settings-toggle').click()
             await page.locator('#volume').evaluate("e=>{e.value='35';e.dispatchEvent(new Event('input',{bubbles:true}));}")
             assert await page.locator('#video').evaluate('v=>Math.abs(v.volume-.35)<.01 && !v.muted')
-            await page.locator('#settings-toggle').click()
             await expect(page.locator('#settings-close')).to_be_focused()
             await page.locator('#picture').select_option('classic')
             await page.locator('#caption-size').select_option('large')
@@ -68,7 +70,7 @@ async def run(url):
             phone=await mobile.new_page()
             phone.on('pageerror',lambda error: errors.append(str(error)))
             await phone.goto(url)
-            await expect(phone.locator('#detail-title')).not_to_have_text('Loading guide…')
+            await expect(phone.locator('#detail-title')).not_to_have_text('Loading blocks…')
             assert await phone.evaluate('document.documentElement.scrollWidth<=innerWidth')
             await phone.screenshot(path=str(output/'tv-controls-mobile.png'),full_page=True)
             assert not errors,errors

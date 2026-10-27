@@ -1,5 +1,131 @@
 # Verification record
 
+## Collection hierarchy, programme folio and visual planning — 26 October 2026
+
+The viewer now presents the collection title and shared colour above an explicit Block 1/2/3 label. Ordinal controls navigate between related blocks. Collection association also accompanies live programming metadata and the player label. There are still exactly two timeline lanes. The running order uses numbered panels, a wider treatment for long works, synopsis excerpts and a bar showing each work's proportion of the block.
+
+The default window is three hours with half-hour ticks. Full day uses the selected British day for scheduled programming, or a relative 24-hour window for a collection. The selected collection block focuses its own three-hour window. Display scales preserve broadcast timings.
+
+Studio groups blocks under collections, links parent/child editors, offers a clickable proportional programme sequence, and shows miniature rundowns on collection cards. Its cycle/weekly board distinguishes blocks, hatched gaps and red overlaps. Gap selection opens a fitting-block chooser. Native drag-and-drop places blocks at a snapped time or moves an existing occurrence; slot forms retain exact-time editing. The shared geometry handles midnight crossings, Sunday-to-Monday wrapping and repeated weekly slots.
+
+**48 Python and 38 JavaScript tests pass.** Added checks cover player/guide collection identity, three-hour/full-day switching, hierarchy controls, gap placement, gap/overlap unions, midnight/week wrapping, overrun identification and moving one repeated occurrence. JavaScript syntax, Python compilation and whitespace checks pass.
+
+The built-in browser verified the actual collection label, Block 1 and Block 2 navigation, a 00:00–24:00 collection view containing three blocks and 30 works, and a 03:00–06:00 view containing block two's eight works. Desktop and measured 389×843 CSS phone views were inspected. Programme panels retain chronological order and the phone has no horizontal page or guide-sheet overflow.
+
+In Studio, an unsaved weekly test placed block one in Tuesday's gap at 00:00–03:00. Adding another block at Monday 19:00 produced a visible 1m54s overlap. A native browser drag moved that block to 21:00 and cleared the warning. The form showed starts 19:00, 00:00 and 21:00. Discard changes restored saved/published revision 5; no test schedule was published. Surfacing synopsis excerpts exposed an old archive-access qualifier in The Family. That qualifier was removed in Studio and the cleaner copy was published as revision 6, with the original cycle and running order retained. The grouped block library and proportional programme sequence were also inspected.
+
+Fresh local captures, ignored by Git:
+
+- `test-results/hierarchy-guide-desktop.png`
+- `test-results/hierarchy-programme-folio.png`
+- `test-results/hierarchy-guide-phone.png`
+- `test-results/hierarchy-folio-phone.png`
+- `test-results/hierarchy-studio.png`
+- `test-results/hierarchy-schedule-draft.png` (the unsaved overlap test)
+
+## SQLite Studio and clean viewer copy — 26 October 2026
+
+Studio runs as a separate local FastAPI service on port 8001. SQLite stores programme records, reusable blocks, ordered rundown items, collections, schedule settings and revisions. First use imports the existing JSON/Markdown configuration. Saving keeps a draft; publishing validates scheduled dependencies and atomically replaces one delivery bundle. The public service loads its schedule, catalogue and editorial content together without restarting. The database and editor routes are absent from the public service.
+
+The viewer guide has no development caveats, preview warnings, About notes, advisory panels, archive explanation or running-order instruction. Programme descriptions, source credits, relative collection times and the two aligned lanes remain. “Back to live guide” returns to the current block after time has passed.
+
+**47 Python and 31 JavaScript tests pass.** New checks cover SQLite persistence and foreign keys, draft/publication separation, revision restoration, stale edits, missing scheduled media, pairing a prepared asset by ID, measured durations, overlaps, corrupt-publication recovery, fill duration including adverts, local client/Host/origin restrictions and the absence of editor routes on the viewer service. DOM tests exercise editing, reordering, save-before-publish and return to the current broadcast. JavaScript syntax, Python compilation and whitespace checks pass.
+
+The desktop built-in browser verified rundown reordering and saving; exact six-second fill of the 114-second block; restoring its original seven-item order from a saved revision; publishing; and removing the remaining sample-copy qualifier through the programme editor. The final local published edition is revision 5, with the original running order and cleaner copy. Public metadata loaded the publication without a station restart. Native video reached readyState 4 while playing, with status Live and a same-origin prepared-media URL.
+
+The viewer collection and block were checked at a wide desktop size and measured 389×843 CSS phone size. Both lanes remain, note elements are absent, no development disclaimer text is rendered and no horizontal page or guide-sheet overflow was observed on the phone. The operator's programme, block and schedule screens were inspected in the browser. Native drag-and-drop handlers are supplied; the rendered reorder check used the labelled keyboard buttons. Full Nebula/Dramatica services, live ingest and remote deployment were not exercised.
+
+Fresh local captures, ignored by Git: `test-results/sqlite-studio.png`, `test-results/clean-published-guide.png`, `test-results/clean-published-phone.png`. Operating instructions and the database model are in [STUDIO.md](STUDIO.md).
+
+## Two-layer block guide — 26 October 2026
+
+The timeline has exactly two aligned lanes: Blocks and Programmes. Collections remain optional reading context. Selecting a block opens its full running order; selecting a programme in either lane opens its parent block and expands that work without calling the playback action. Interrupted films retain their advert and continuation segments within one work. JSON supplies the hierarchy and running order, with Markdown files supplying longer editorial copy.
+
+The supplied nine-hour treatment is available through Guide → Collections as three unscheduled editorial previews containing 30 works. Its timeline uses relative programme times, with no live playhead or play action. Existing demo media remains the broadcast source.
+
+**41 Python and 30 JavaScript tests pass.** Coverage includes complete airings from partial query windows, work grouping, preview and collection metadata, content reload validation, the two-lane DOM flow, retained work expansion, stale-response handling and recoverable request failures. Whitespace checks pass. The terminal browser acceptance scripts were updated but were not executed in this pass.
+
+The desktop app's built-in browser verified the real guide at a wide desktop viewport and a measured 389×843 CSS phone viewport. Both showed two aligned lanes, three preview blocks and 30 programme spans. Selecting Ratcatcher opened part two and expanded its details. The preview stayed selected through subsequent live clock updates. No horizontal page or guide-sheet overflow was observed on the phone; the timeline itself intentionally pans horizontally. This pass checked guide navigation and layout; video decoding and physical-device playback were not rechecked.
+
+Fresh local screenshots, ignored by Git:
+
+- `test-results/block-layers-desktop.png`
+- `test-results/block-layers-phone.png`
+
+## Simplified guide and player — 26 October 2026
+
+The guide now has two editorial columns and one navigation area. A single header clock and the timeline playhead retain real live orientation. The separate TX/facts card, duplicate progress readout, decorative archive numbering and large channel-name rail are removed. Native Programme notes and mobile Short clips disclosures retain the original copy and short-transmission targets. The main player strip has five buttons; volume, subtitles and rejoin live remain in Settings. Watch live is conditional on idle/paused playback. The changing palettes, glass panels, motion and live content publishing remain.
+
+**36 Python and 25 JavaScript tests pass.** HTML IDs, JavaScript element references, CSS parsing, JavaScript syntax and whitespace checks pass. The supplied terminal browser acceptance scripts were updated for the new selectors/controls, but were not executed; this pass used the desktop app’s built-in browser.
+
+Rendered checks used measured CSS viewports **1440×1000**, **389×843** and the default **870×1095**. No page or guide horizontal overflow was observed. Video reached readyState 4 while playing. Guide browsing works before tune-in; Watch live joins the picture and closes the guide, then hides when playback is active. Programme notes reveals the unchanged strand copy and tags. Short clips expands readable buttons; selecting an advert changes details and restores coral. Keyboard left/right selection works. Tomorrow opens at British midnight, Later advances the window and Now restores the live marker. Settings exposes volume and subtitle choices; a one-step volume adjustment and English subtitle selection were verified, then restored to 70%, muted and subtitles Off. Escape returns guide focus to its explicit opener; Settings close returns focus to its toggle. Guide focus is restored after pointer dismissal settles, including Safari. No programming copy or editorial configuration was changed.
+
+Captures: `test-results/simplified-guide-phone.png` and `test-results/simplified-guide-desktop.png` (ignored by Git). The temporary responsive viewport override was reset after review.
+
+## Changing palettes and live JSON/Markdown content — 26 October 2026
+
+**36 Python tests and 25 JavaScript tests pass.** The private editorial layer resolves JSON defaults, programme overrides and strand overrides, plus local Markdown prose, into public API/search/XMLTV/CLI exports. Tests verify edit detection, revision changes, unchanged media/timing/captions, source preservation, invalid/partial-save recovery, newly referenced file recovery, unreadable-file fallback, unsafe paths and symlink refusal, field allowlisting, safe prose and appearance priority. Station CLI validation passes for seven assets and 7,200 upcoming demo transmissions. JavaScript syntax and whitespace checks pass.
+
+The real station was restarted for the new backend. In the built-in browser, a manually selected documentary showed its existing synopsis and cobalt edition. Its Markdown file was temporarily appended with a verification sentence. The sentence appeared automatically, without a page reload, while video remained readyState 4 and playing. Focus stayed on the same transmission button after the guide refreshed. The original file was then restored and the original synopsis reappeared automatically. No verification wording remains in the content files.
+
+Selecting an advert gave the coral header and cream facts; selecting an ident gave the citrus edition. The programme had already shown cobalt. Individual programme choices retain their edition on resumption; the previous fixed-strand default is superseded. The existing glass surfaces, shared-clock live signals and finite motion toolkit remain.
+
+New authoring files: `config/content.json` and `config/descriptions/*.md`. Catalogue and schedule changes still require validation/restart. Public APIs return a content revision and resolved fields; no editorial file paths are exposed. The player polls every ten seconds and refreshes selected guide content on a changed revision. The Markdown syntax is deliberately restricted and presented as plain text. Artwork IDs select from the two credited local archive placeholders.
+
+Capture: `test-results/live-content-changing-colours.png` (ignored by Git).
+
+## Strand identity, motion toolkit and frosted panels — 26 October 2026
+
+**30 Python tests and 25 JavaScript tests pass.** New checks cover stable strand colour through adverts/idents/resumptions, deterministic unknown-strand fallback, rapid-wipe cancellation, reduced-motion changes during active gestures, finite animation completion and missing animation APIs. The motion module is explicitly served and included in the public-route checks. JavaScript syntax, CSS parsing and whitespace checks pass. Four palette contrast checks pass: translucent header text has a worst-case ratio of at least 5.45:1 against black/white backdrops; facts text is at least 10.32:1.
+
+The built-in browser connection recovered. The real station was reloaded and tuned in successfully; video reached readyState 4 while playing. The guide was checked at measured CSS viewports **1440×1000 and 389×843**, plus the default 870×1095. Neither page nor guide had horizontal overflow. The viewport override was reset afterwards. The browser’s viewport command used a scaling factor, so dimensions were verified from the rendered document rather than inferred from requested settings.
+
+Observed: live TX time and playhead advance; selecting an advert retains the After Hours edition; selected historical details remain stable while the live signal advances; Now restores current selection; settings open/close and focus returns to the settings control; Back to live closes the guide and playback continues. The console contains no warnings/errors during this review. Computed styles confirm smoked controls (66% ink with 18px blur), the guide sleeve (33% stock with 24px blur) and pale settings (91% stock with 20px blur). Reading areas remain opaque. Reduced-motion cancellation/final states are verified by the toolkit tests and stylesheet; no OS preference was changed for this review.
+
+Local captures, ignored by Git:
+- `test-results/identity-glass-guide.png`
+- `test-results/identity-glass-phone.png`
+- `test-results/identity-glass-settings.png`
+
+The earlier browser limitation below records the preceding pass and is resolved for this review.
+
+## Archive-led composition and kinetic editions — 26 October 2026
+
+The current pass adds a three-column guide with a large archive image, offset programme title and narrow facts panel. Four edition palettes vary with transmission type, while acid selection stays consistent. The two images are real, locally cached archive downloads: NASA’s Moon-walking simulator and Nationaal Archief / Spaarnestad’s 1931 radio hat. Source credits, links, reuse statements and hashes are retained. No generated replacement image is referenced by the project.
+
+Guide acquisition, first tune-in and changed-selection transitions are finite and respect reduced motion. Decoding precedes the image wipe, stale async selections are ignored and the TX display uses the shared clock and actual live progress. Programme metadata, broadcast timing and playback transport are preserved.
+
+Validation: **30 Python tests and 21 JavaScript tests pass**. Checks include JPEG MIME/signature, HEAD/cache responses, explicit asset allowlisting, source attribution and stable art direction across programme resumptions. HTML IDs/JavaScript element references, CSS parsing, JavaScript syntax, whitespace and the real HTTP routes pass. The local station was restarted successfully.
+
+**Fresh rendered verification is pending:** the Codex app browser bridge returned “Codex app tool request failed”; browser inventory returned no available browser and the same connection error. Native control of the Codex app was explicitly unavailable. No different browser or control bypass was used. Earlier captures below belong to the preceding design pass. This pass has no new browser screenshot or claimed rendered desktop/mobile result.
+
+## Transmission-sheet design and local browser review — 26 October 2026
+
+The project was cloned to `TVStation/oddity-tv` and run locally using the documented Python setup. The Mac’s default FFmpeg lacks drawtext. A development-only `imageio-ffmpeg` binary with drawtext was installed in the ignored virtual environment and exposed as `.venv/bin/ffmpeg` to generate the original demo. FFprobe and station validation pass: seven assets and 7,200 transmissions over 24 hours. The public station still has no FFmpeg dependency.
+
+The user supplied five graphic references during the review. The resulting transmission sheet replaces the earlier restrained wine/lilac exploration with oversized Bricolage Grotesque lettering, an italic Instrument Serif signature, IBM Plex Mono facts, a circular channel index, double ledger rules, black ink on warm stock and bounded acid/pink/cyan highlights. Rules and reference interpretation are in `DESIGN_SYSTEM.md`. All programme copy and timing are retained.
+
+### Rendered checks
+
+The Codex desktop built-in browser was used against `http://127.0.0.1:8000`. Observed CSS viewports included 1440×1000 and 389×843; an earlier compact check used 358×657. The final desktop and phone views have no horizontal page or guide-sheet overflow. Native video reached readyState 4 while playing. Automatic programme changes were observed during browsing.
+
+Verified interactions: tune in; Guide opening/dismissal; Tomorrow at British midnight; programme selection; left/right keyboard movement; Now/live visibility; fixed channel rail; horizontal position retained on refresh; settings opening/dismissal; local pause and resume during the review. Focus returns to Guide or Settings after closing, including after resizing. The focus decision now happens before hiding a sheet, because Safari can immediately blur a hidden descendant.
+
+Live-follow scrolling is triggered on opening, live updates and viewport resizing. Viewer input stops following; programmatic scrolling does not. Mobile short clips have labels, and strand notes follow the timetable. The current desktop and mobile captures were taken with the synthetic broadcast playing behind the guide.
+
+Local captures, ignored by Git:
+
+- `test-results/transmission-arrival-desktop.jpg`
+- `test-results/transmission-guide-desktop.jpg`
+- `test-results/transmission-guide-mobile.jpg`
+- `test-results/browser-review.json`
+
+### Automated checks
+
+All **29 Python tests and 19 JavaScript tests pass**. Station validation, JavaScript syntax and `git diff --check` pass. New delivery checks verify all four WOFF2 fonts, MIME types, HEAD, caching and the explicit font allowlist. Full font licences ship beside their files. The metadata fallback fixture explicitly removes the demo’s newer tag override; the default-guide payload budget accounts for current captions and strand context.
+
+This review used the built-in browser directly. The complete standalone Playwright acceptance scripts were not run. Physical-device synchronisation, fullscreen, PiP, a real Jellyfin import, Docker deployment and public hosting remain separate acceptance work. No public site, pull request, issue or GitHub comment was created. The earlier records below describe their original environments and limitations.
+
 ## Programme-sheet redesign — 25 October 2026
 
 A substantial compositional change replaces the prior dark modal treatment: an ink-dark player with a ruled control strip, and a warm paper guide with a dark green channel index and selection. The selected work leads in large serif type; timings and index labels use a monospaced face, with neutral sans-serif descriptions. Desktop programme information leads the wider column; strand context sits alongside it. On mobile, programme information leads and strand notes follow. Source titles, descriptions, schedule data and copy are preserved; only the Live label is wrapped for narrow-screen layout, with an explicit accessible button name. The stylesheet is rewritten as one coherent system rather than accumulating prior skin overrides.

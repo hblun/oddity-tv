@@ -44,3 +44,25 @@ Adaptation: `station/jellyfintv.py` extracts `search_items` criteria constructio
 Original source files contained no additional licence/copyright notices. No upstream advertisement or other media asset was copied. Vendored references are not executed or served; the named adaptations are active.
 
 Other dependencies retain their licences: FastAPI (MIT), Starlette (BSD-3-Clause), Uvicorn (BSD-3-Clause), HTTPX (BSD-3-Clause). FFmpeg and enabled codecs have their distribution-specific LGPL/GPL terms; the tools image uses Debian's FFmpeg package. Original synthetic demo media is offered under CC0.
+
+## Transmission-sheet interface typefaces
+
+Downloaded from the Google Fonts repository on 26 October 2026. FontTools 4.67.0 was used to compress the complete TTF files to WOFF2; glyph designs and family names are unchanged. Complete SIL Open Font License 1.1 notices are included alongside the fonts and therefore travel with `COPY web ./web` in the Docker image. These are original typeface names, not station-owned typefaces.
+
+- Instrument Serif regular and italic: Copyright 2022 The Instrument Serif Project Authors. Source: https://github.com/google/fonts/tree/main/ofl/instrumentserif. Files and licence: `web/fonts/instrument-serif/`.
+- Bricolage Grotesque variable, upright: Copyright 2022 The Bricolage Grotesque Project Authors. Source: https://github.com/google/fonts/tree/main/ofl/bricolagegrotesque and https://github.com/ateliertriay/bricolage. Files and licence: `web/fonts/bricolage-grotesque/`.
+- IBM Plex Mono regular: Copyright © 2017 IBM Corp., Reserved Font Name “Plex”. Source: https://github.com/google/fonts/tree/main/ofl/ibmplexmono. Files and licence: `web/fonts/ibm-plex-mono/`.
+
+Fonts are delivered only through explicit same-origin allowlisted URLs, with GET/HEAD and one-day caching. No design-reference artwork, studio branding or proprietary reference fonts are included.
+
+## Real archive photographs used as guide placeholders
+
+`web/artwork/moon-walking.jpg` is the NASA / Langley Moon-walking simulator image from https://www.nasa.gov/centers-and-facilities/langley/50-years-ago-the-lunar-landing-research-facility/. The article credits NASA. The factual, informational prototype use follows NASA’s media guidance at https://www.nasa.gov/nasa-brand-center/images-and-media/; no endorsement is suggested.
+
+`web/artwork/radio-hat.jpg` is “Portable radio in a straw hat, 1931”, credited to Nationaal Archief / Spaarnestad Photo / Het Leven, photographer unknown, SFA022812804. The Wikimedia file page https://commons.wikimedia.org/wiki/File:Draagbare_radio_-_Radio_hat_(4193509510).jpg records the original institutional Flickr Commons source and “No known copyright restrictions”. This is recorded as the archive’s status, not an explicit CC0 grant.
+
+Both JPEGs are unmodified downloads, served locally through an explicit allowlist. CSS supplies display cropping, monochrome presentation and a separate colour marker. These images are labelled as illustrative placeholders unrelated to the current programme. Complete provenance, download URLs, retrieval dates and checksums are in `web/artwork/sources.json`; no generated archive imitation is bundled.
+
+## Development-only DOM tests
+
+The Node.js test suite uses jsdom 30.1.3 (MIT), installed through npm with a pinned lockfile. It is not shipped in the browser or the public Python station image. Its licence and dependency notices accompany the development installation under node_modules.

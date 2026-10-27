@@ -1,0 +1,300 @@
+{
+  "defaults": {
+    "programme": {
+      "theme": "cobalt",
+      "artwork": "moon-walking"
+    },
+    "archive": {
+      "theme": "cobalt",
+      "artwork": "moon-walking"
+    },
+    "advert": {
+      "theme": "coral",
+      "artwork": "radio-hat"
+    },
+    "trailer": {
+      "theme": "coral",
+      "artwork": "radio-hat"
+    },
+    "ident": {
+      "theme": "citrus",
+      "artwork": "moon-walking"
+    },
+    "public-information": {
+      "theme": "nocturne",
+      "artwork": "radio-hat"
+    },
+    "interstitial": {
+      "theme": "nocturne",
+      "artwork": "radio-hat"
+    }
+  },
+  "programmes": {
+    "ident": {
+      "description_file": "descriptions/ident.md"
+    },
+    "documentary": {
+      "description_file": "descriptions/documentary.md"
+    },
+    "advert": {
+      "description_file": "descriptions/advert.md"
+    },
+    "pif": {
+      "description_file": "descriptions/pif.md"
+    },
+    "trailer": {
+      "description_file": "descriptions/trailer.md"
+    },
+    "feature": {
+      "description_file": "descriptions/feature.md",
+      "theme": "nocturne"
+    },
+    "oddity": {
+      "description_file": "descriptions/oddity.md"
+    }
+  },
+  "strands": {
+    "after-hours": {
+      "description_file": "descriptions/strand-after-hours.md"
+    },
+    "weans-01": {
+      "title": "i've been very reasonable",
+      "premise": "Authority and injured pride",
+      "description_file": "descriptions/weans-01.md",
+      "notes_file": "descriptions/weans-01-notes.md",
+      "theme": "coral",
+      "artwork": "radio-hat",
+      "lineup": [
+        {
+          "title": "Station opening: nothing has happened",
+          "description": "an ordinary family photograph held far too long",
+          "duration": 120,
+          "kind": "ident"
+        },
+        {
+          "title": "The Girl Chewing Gum",
+          "description": "John Smith's brilliantly ridiculous experiment in authority",
+          "duration": 720,
+          "kind": "programme",
+          "year": 1976
+        },
+        {
+          "title": "The Guardian: Points of View",
+          "description": "who's actually telling the truth?",
+          "duration": 60,
+          "kind": "advert",
+          "year": 1986
+        },
+        {
+          "title": "Selected educational films: family communication, instruction, proper conduct",
+          "description": "",
+          "duration": 600,
+          "kind": "archive"
+        },
+        {
+          "title": "The Squid and the Whale",
+          "description": "Noah Baumbach",
+          "duration": 4860,
+          "kind": "programme",
+          "year": 2005
+        },
+        {
+          "title": "The Big Snit",
+          "description": "a marital row coincides with nuclear annihilation",
+          "duration": 600,
+          "kind": "programme",
+          "year": 1985
+        },
+        {
+          "title": "small print: telephone, household finance and domestic-product commercials",
+          "description": "",
+          "duration": 240,
+          "kind": "advert"
+        },
+        {
+          "title": "The Royle Family: Bills, Bills, Bills",
+          "description": "",
+          "duration": 1680,
+          "kind": "programme",
+          "year": 1998
+        },
+        {
+          "title": "Neighbours",
+          "description": "Norman McLaren's escalating dispute over a flower",
+          "duration": 480,
+          "kind": "programme",
+          "year": 1952
+        },
+        {
+          "title": "Gasman",
+          "description": "Lynne Ramsay; a father's secret seen through his children's eyes",
+          "duration": 840,
+          "kind": "programme",
+          "year": 1998
+        },
+        {
+          "title": "Scottish home-movie selection: family parties, arrivals and awkward celebrations",
+          "description": "",
+          "duration": 480,
+          "kind": "archive"
+        },
+        {
+          "title": "Limmy: She's Turned the Weans Against Us",
+          "description": "original sketch and closing ident",
+          "duration": 120,
+          "kind": "ident"
+        }
+      ]
+    },
+    "weans-02": {
+      "title": "nobody said that",
+      "premise": "The house and its witnesses",
+      "description_file": "descriptions/weans-02.md",
+      "notes_file": "descriptions/weans-02-notes.md",
+      "theme": "cobalt",
+      "artwork": "moon-walking",
+      "lineup": [
+        {
+          "title": "Opening: children's voices, family photographs, almost no music",
+          "description": "",
+          "duration": 120,
+          "kind": "ident"
+        },
+        {
+          "title": "Family Choice",
+          "description": "a Scottish family's decisions about where to holiday",
+          "duration": 660,
+          "kind": "archive",
+          "year": 1959
+        },
+        {
+          "title": "The Family",
+          "description": "a selected episode",
+          "duration": 1800,
+          "kind": "programme"
+        },
+        {
+          "title": "School and Family Outings 1950s",
+          "description": "children, coaches, trains and remembered places",
+          "duration": 1260,
+          "kind": "archive"
+        },
+        {
+          "title": "Ratcatcher",
+          "description": "Lynne Ramsay",
+          "duration": 5580,
+          "kind": "programme",
+          "year": 1999
+        },
+        {
+          "title": "Blight",
+          "description": "John Smith's film of disappearing homes and remembered voices",
+          "duration": 840,
+          "kind": "programme",
+          "year": 1996
+        },
+        {
+          "title": "Creature Comforts",
+          "description": "complaints about accommodation, voiced by animals",
+          "duration": 300,
+          "kind": "programme",
+          "year": 1989
+        },
+        {
+          "title": "Four minutes of housing advertisements, domestic conveniences and restrained continuity",
+          "description": "",
+          "duration": 240,
+          "kind": "advert"
+        }
+      ],
+      "content_information": "Includes distressing material involving children in Ratcatcher."
+    },
+    "weans-03": {
+      "title": "you had a nice time though",
+      "premise": "Memory and affection",
+      "description_file": "descriptions/weans-03.md",
+      "notes_file": "descriptions/weans-03-notes.md",
+      "theme": "citrus",
+      "artwork": "moon-walking",
+      "lineup": [
+        {
+          "title": "Opening: wish you were here",
+          "description": "holiday title card, ambient sound",
+          "duration": 180,
+          "kind": "ident"
+        },
+        {
+          "title": "Millport and Family Snapshots",
+          "description": "silent Scottish family footage",
+          "duration": 780,
+          "kind": "archive",
+          "year": 1952
+        },
+        {
+          "title": "O Dreamland",
+          "description": "Lindsay Anderson's unsettling Margate documentary",
+          "duration": 720,
+          "kind": "programme",
+          "year": 1953
+        },
+        {
+          "title": "small print: British holiday, household and telephone adverts, including Maureen Lipman's BT campaign",
+          "description": "",
+          "duration": 420,
+          "kind": "advert"
+        },
+        {
+          "title": "Aftersun",
+          "description": "Charlotte Wells",
+          "duration": 6120,
+          "kind": "programme",
+          "year": 2022
+        },
+        {
+          "title": "Contemporary online home-video or personal-essay selection",
+          "description": "",
+          "duration": 480,
+          "kind": "programme"
+        },
+        {
+          "title": "Dad, How Do I?",
+          "description": "an online-dad tutorial, followed by complementary material",
+          "duration": 720,
+          "kind": "programme"
+        },
+        {
+          "title": "Assorted amateur family footage: journeys, birthdays, unidentified faces",
+          "description": "",
+          "duration": 720,
+          "kind": "archive"
+        },
+        {
+          "title": "Father and Daughter",
+          "description": "Michael Dudok de Wit",
+          "duration": 540,
+          "kind": "programme",
+          "year": 2000
+        },
+        {
+          "title": "Closing transmission: a held frame, some room tone, no punchline",
+          "description": "",
+          "duration": 120,
+          "kind": "ident"
+        }
+      ],
+      "content_information": "Aftersun explores depression and possible suicide."
+    }
+  },
+  "collections": {
+    "weans": {
+      "title": "he's turned the weans against you",
+      "description_file": "descriptions/weans-collection.md",
+      "notes_file": "descriptions/weans-collection-notes.md",
+      "blocks": [
+        "weans-01",
+        "weans-02",
+        "weans-03"
+      ]
+    }
+  }
+}

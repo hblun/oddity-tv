@@ -219,7 +219,8 @@ def main():
             from .schedule import Schedule
             station = Schedule(json.loads((args.config / "schedule.json").read_text()),
                                json.loads((args.config / "catalog.json").read_text()), args.media)
-            guide = station.guide(time.time(), 24)
+            from .content import ContentStore
+            guide = ContentStore(args.config).snapshot(strict=True).guide(station, time.time(), 24)
             if args.command == "export":
                 save_json(args.output, guide)
             else:

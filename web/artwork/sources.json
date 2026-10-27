@@ -1,0 +1,27 @@
+[
+  {
+    "file": "moon-walking.jpg",
+    "title": "A simulation of walking on the Moon",
+    "credit": "NASA / Langley Research Center",
+    "source": "https://www.nasa.gov/centers-and-facilities/langley/50-years-ago-the-lunar-landing-research-facility/",
+    "download": "https://www.nasa.gov/wp-content/uploads/2017/10/llrf_moon_walking.jpg",
+    "rights": "NASA media usage guidelines permit factual informational use with credit, subject to their stated conditions. The article credits NASA.",
+    "rights_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "notes": "Real archive photograph of a subject suspended sideways in the lunar-gravity simulator. The source is in colour; CSS displays it in monochrome. No endorsement is implied.",
+    "retrieved": "2026-10-26",
+    "sha256": "35117535e74fc5506f25af6e0d7e1f728762f0e4c23925cd0949498d9c901164"
+  },
+  {
+    "file": "radio-hat.jpg",
+    "title": "Portable radio in a straw hat, 1931",
+    "credit": "Nationaal Archief / Spaarnestad Photo / Het Leven; photographer unknown; SFA022812804",
+    "source": "https://commons.wikimedia.org/wiki/File:Draagbare_radio_-_Radio_hat_(4193509510).jpg",
+    "original_source": "https://www.flickr.com/photos/nationaalarchief/4193509510/",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/8/88/Draagbare_radio_-_Radio_hat_%284193509510%29.jpg",
+    "rights": "No known copyright restrictions, as reported for the Nationaal Archief Flickr Commons upload and reviewed on the Wikimedia file page. This is not described as an explicit CC0 licence.",
+    "rights_url": "https://commons.wikimedia.org/wiki/File:Draagbare_radio_-_Radio_hat_(4193509510).jpg",
+    "notes": "Original monochrome archive photograph. CSS removes the scan\u2019s warm cast; bytes are unchanged.",
+    "retrieved": "2026-10-26",
+    "sha256": "de5a89bf9030637b8c9f4aaba9e0e33e93691fc5ef84ddd687408919104a470b"
+  }
+]

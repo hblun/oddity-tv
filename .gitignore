@@ -11,3 +11,8 @@ __pycache__/
 *.pyc
 .venv/
 test-results/
+node_modules/
+
+config/studio.sqlite3*
+config/published.json
+config/.publication-*
